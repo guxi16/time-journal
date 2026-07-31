@@ -39,7 +39,7 @@ body {
   color: var(--text-primary);
   font-size: 15px;
   line-height: 1.6;
-  overflow-x: hidden;
+  overflow-x: clip; /* clip 不会破坏 fixed 定位（hidden 在 iOS 上有 bug） */
   -webkit-tap-highlight-color: transparent;
   -webkit-font-smoothing: antialiased;
 }
@@ -49,6 +49,8 @@ body {
   margin: 0 auto;
   min-height: 100dvh;
   position: relative;
+  display: flex;
+  flex-direction: column;
   padding-bottom: 16px;
 }
 
@@ -58,7 +60,10 @@ body {
   min-height: calc(100dvh - 100px);
 }
 
-.page.active { display: block; }
+.page.active {
+  display: block;
+  flex: 1;
+}
 
 .page-header {
   padding: 24px 0 16px;
@@ -904,26 +909,24 @@ body {
 
 .btn-danger:active { background: rgba(201,132,122,0.15); }
 
-/* 底部导航：position: sticky（比 fixed 在 mobile 浏览器上稳得多，地址栏收起不会跳） */
+/* 底部导航：fixed 固定在视口底部（body overflow-x 已改为 clip，不再破坏 fixed 定位） */
 .bottom-nav {
-  position: sticky;
+  position: fixed;
+  left: 50%;
   bottom: 12px;
+  transform: translateX(-50%);
   z-index: 100;
   display: flex;
-  justify-content: center;
   background: var(--bg-glass);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--border-subtle);
   border-radius: 24px;
   padding: 6px 8px;
-  margin: 12px auto 12px;
   box-shadow: 0 2px 20px rgba(0,0,0,0.3);
   width: fit-content;
   min-width: 280px;
   max-width: calc(100% - 24px);
-  transform: translateZ(0);
-  -webkit-transform: translateZ(0);
 }
 
 .nav-btn {
@@ -976,14 +979,14 @@ body {
   background: rgba(8, 9, 14, 0.85);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  z-index: 20;
+  z-index: 290;
   animation: fadeIn 0.25s;
 }
 
 .modal {
   position: fixed;
   inset: 0;
-  z-index: 21;
+  z-index: 300;
   display: flex;
   align-items: center;
   justify-content: center;
