@@ -175,41 +175,6 @@ var App = (function() {
   function bindInspoButtons() {
     var addBtn = document.getElementById('btn-inspo-add');
     if (addBtn) addBtn.addEventListener('click', showAddInspo);
-
-    var likeBtn = document.getElementById('btn-like');
-    if (likeBtn) likeBtn.addEventListener('click', giveLike);
-    updateLikeLabel();
-  }
-
-  function updateLikeLabel() {
-    var label = document.getElementById('like-label');
-    if (!label) return;
-    try {
-      var likes = Storage.getLikes();
-      var n = likes && likes.count ? likes.count : 0;
-      label.textContent = n > 0 ? ('已收到 ' + n + ' 个赞 ❤️ 再点一个') : '点个赞支持铃铛';
-    } catch(e) {}
-  }
-
-  function giveLike() {
-    try {
-      var d = Storage.addLike();
-      var n = d.count || 1;
-      var msgs = [
-        '第 ' + n + ' 个赞！铃铛收到啦 ❤️',
-        '谢谢你，顾顾 🥰 已累计 ' + n + ' 个赞',
-        '叮咚！第 ' + n + ' 个赞到账 💌'
-      ];
-      var msg = msgs[Math.floor(Math.random() * msgs.length)];
-      showSavedToast(msg);
-      updateLikeLabel();
-      // 里程碑彩带
-      if (n === 1 || n === 10 || n === 50 || n === 100 || n % 100 === 0) {
-        if (window.Achievement && Achievement.createConfetti) {
-          try { Achievement.createConfetti(); } catch(e) {}
-        }
-      }
-    } catch(e) {}
   }
 
   function showAddInspo() {
