@@ -51,7 +51,7 @@ body {
   position: relative;
   display: flex;
   flex-direction: column;
-  padding-bottom: 16px;
+  padding-bottom: 92px; /* 给全宽底部导航条留空间 */
 }
 
 .page {
@@ -299,7 +299,7 @@ body {
 
 .fab {
   position: fixed;
-  bottom: 90px;
+  bottom: 84px;
   right: 24px;
   width: 48px;
   height: 48px;
@@ -909,28 +909,28 @@ body {
 
 .btn-danger:active { background: rgba(201,132,122,0.15); }
 
-/* 底部导航：fixed 固定在视口底部（body overflow-x 已改为 clip，不再破坏 fixed 定位） */
+/* 底部导航：最简单可靠的全宽贴底写法，不依赖 left:50%+transform 组合 */
 .bottom-nav {
   position: fixed;
-  left: 50%;
-  bottom: 12px;
-  transform: translateX(-50%);
+  left: 0;
+  right: 0;
+  bottom: 0;
   z-index: 100;
   display: flex;
+  justify-content: center;
+  align-items: center;
   background: var(--bg-glass);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid var(--border-subtle);
-  border-radius: 24px;
+  border-top: 1px solid var(--border-subtle);
   padding: 6px 8px;
-  box-shadow: 0 2px 20px rgba(0,0,0,0.3);
-  width: fit-content;
-  min-width: 280px;
-  max-width: calc(100% - 24px);
+  padding-bottom: calc(6px + env(safe-area-inset-bottom, 0px));
+  box-shadow: 0 -2px 20px rgba(0,0,0,0.3);
 }
 
 .nav-btn {
   flex: 1;
+  max-width: 120px;
   padding: 8px 0;
   border: none;
   background: none;
