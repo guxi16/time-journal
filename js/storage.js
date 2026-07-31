@@ -361,6 +361,23 @@ var Storage = (function() {
     return reasons.slice(-days);
   }
 
+  // ---- 点赞功能 ----
+  function getLikes() {
+    var d = getStore('likes') || { count: 0, lastDate: '', history: [] };
+    return d;
+  }
+
+  function addLike() {
+    var d = getLikes();
+    d.count = (d.count || 0) + 1;
+    d.lastDate = realToday();
+    if (!d.history) d.history = [];
+    d.history.push({ date: realToday(), timestamp: Date.now() });
+    if (d.history.length > 100) d.history = d.history.slice(-100);
+    setStore('likes', d);
+    return d;
+  }
+
   function clearAll() {
     var keys = Object.keys(localStorage).filter(function(k) { return k.startsWith('tj_'); });
     keys.forEach(function(k) { localStorage.removeItem(k); });
@@ -410,6 +427,8 @@ var Storage = (function() {
     getTarotHistory: getTarotHistory,
     saveLateNightReason: saveLateNightReason,
     getLateNightReasons: getLateNightReasons,
+    getLikes: getLikes,
+    addLike: addLike,
     clearAll: clearAll,
     exportData: exportData,
     updateDayStart: updateDayStart,
