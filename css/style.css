@@ -49,13 +49,13 @@ body {
   margin: 0 auto;
   min-height: 100dvh;
   position: relative;
-  padding-bottom: calc(var(--nav-height) + var(--safe-bottom) + 8px);
+  padding-bottom: 16px;
 }
 
 .page {
   display: none;
   padding: 0 20px;
-  min-height: calc(100dvh - var(--nav-height) - var(--safe-bottom) - 8px);
+  min-height: calc(100dvh - 100px);
 }
 
 .page.active { display: block; }
@@ -294,7 +294,7 @@ body {
 
 .fab {
   position: fixed;
-  bottom: calc(var(--nav-height) + var(--safe-bottom) + 24px);
+  bottom: 90px;
   right: 24px;
   width: 48px;
   height: 48px;
@@ -305,7 +305,7 @@ body {
   font-size: 22px;
   cursor: pointer;
   box-shadow: 0 4px 16px rgba(0,0,0,0.15);
-  z-index: 100;
+  z-index: 200;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -904,24 +904,26 @@ body {
 
 .btn-danger:active { background: rgba(201,132,122,0.15); }
 
+/* 底部导航：position: sticky（比 fixed 在 mobile 浏览器上稳得多，地址栏收起不会跳） */
 .bottom-nav {
-  position: fixed;
+  position: sticky;
   bottom: 12px;
-  left: 50%;
-  transform: translateX(-50%);
+  z-index: 100;
   display: flex;
+  justify-content: center;
   background: var(--bg-glass);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--border-subtle);
   border-radius: 24px;
   padding: 6px 8px;
-  padding-bottom: calc(6px + var(--safe-bottom));
-  z-index: 10;
+  margin: 12px auto 12px;
   box-shadow: 0 2px 20px rgba(0,0,0,0.3);
   width: fit-content;
-  min-width: 320px;
+  min-width: 280px;
   max-width: calc(100% - 24px);
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
 }
 
 .nav-btn {
