@@ -1041,6 +1041,7 @@ body {
   border-radius: 18px;
   position: relative;
   letter-spacing: 0.3px;
+  pointer-events: auto;
 }
 
 .nav-btn:active {
