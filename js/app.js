@@ -100,7 +100,6 @@ var App = (function() {
     if (navBtn) navBtn.classList.add('active');
 
     if (page === 'growth') {
-      Chart.draw(7);
       renderLateList();
       renderPatternAnalysis();
       renderCategoryAnalysis();
@@ -111,6 +110,8 @@ var App = (function() {
     }
     if (page === 'sleep') {
       if (typeof Sleep !== 'undefined' && Sleep.renderToday) Sleep.renderToday();
+      if (typeof Sleep !== 'undefined' && Sleep.renderHistory) Sleep.renderHistory();
+      try { if (typeof Chart !== 'undefined' && Chart.draw) Chart.draw(7); } catch(e) {}
     }
 
     var ov = document.getElementById('overlay');
@@ -344,24 +345,15 @@ var App = (function() {
             var content = r.title || r.content || r.category || '';
             html += '<div class="record-item"><span class="record-time">' + timeStr + '</span>' +
               '<span class="record-icon">' + getIcon(r) + '</span>' +
-              '<span class="record-content"><span class="record-title">' + content + '</span>';
-            if (r.detail) html += '<span class="record-detail">' + r.detail + '</span>';
-            if (r.rawData && r.rawData.startsWith('data:')) {
-              html += '<img class="record-image" src="' + r.rawData + '">';
-            }
-            if (r.type === 'link' && r.detail) {
-              html += '<a class="record-link" href="' + r.detail + '" target="_blank">' + r.detail + '</a>';
-            }
-            html += '</span>';
+              '<span class="record-content"><span class="record-title">' + escapeHtml(content) + '</span></span>';
             var catLabel = r.smartCategory || r.category;
             if (catLabel) {
-              html += '<span class="record-cat">' + catLabel + '</span>';
+              html += '<span class="record-cat">' + escapeHtml(catLabel) + '</span>';
             }
             html += '<span class="record-actions">' +
               '<button class="rec-act-btn" data-act="edit" data-id="' + r.id + '" title="调整内容">✎</button>' +
               '<button class="rec-act-btn rec-del" data-act="del" data-id="' + r.id + '" title="删除">✕</button>' +
-              '</span>';
-            html += '</div>';
+              '</span></div>';
           } catch(e) {
             console.warn('record render error:', e);
           }
@@ -388,16 +380,34 @@ var App = (function() {
       var act = btn.getAttribute('data-act');
       if (!id) return;
       if (act === 'del') {
-        var rec = Storage.getRecentRecords(365).filter(function(r) { return r.id === id; })[0];
-        var label = rec ? (rec.title || rec.content || rec.category || '这条记录') : '这条记录';
-        if (confirm('删除「' + label + '」？删除后无法恢复。')) {
-          Storage.deleteRecord(id);
-          notifyDataChanged();
-          showSavedToast('已删除');
-        }
+        showDeleteConfirm(id);
       } else if (act === 'edit') {
         showEditRecord(id);
       }
+    };
+  }
+
+  // 自定义删除确认弹窗（避免 PWA/移动端 confirm() 被拦截）
+  function showDeleteConfirm(id) {
+    var rec = Storage.getRecentRecords(365).filter(function(r) { return r.id === id; })[0];
+    var label = rec ? (rec.title || rec.content || rec.category || '这条记录') : '这条记录';
+    var html = '<div class="modal-content modal-content-compact" style="position:relative">' +
+      '<div class="modal-title" style="font-size:18px;margin-bottom:12px">删除这条记录？</div>' +
+      '<div class="del-confirm-label" title="' + escapeHtml(label) + '">「' + escapeHtml(label) + '」</div>' +
+      '<div style="font-size:13px;color:var(--text-tertiary);margin-bottom:14px">删了之后没法恢复。</div>' +
+      '<div style="display:flex;gap:8px">' +
+      '<button class="btn-secondary" id="del-cancel" style="flex:1">再想想</button>' +
+      '<button class="btn-danger" id="del-confirm" style="flex:1">删除</button>' +
+      '</div></div>';
+    document.getElementById('modal').innerHTML = html;
+    document.getElementById('overlay').style.display = 'block';
+    document.getElementById('modal').style.display = 'flex';
+    document.getElementById('del-cancel').onclick = function() { Inquiry.close(); };
+    document.getElementById('del-confirm').onclick = function() {
+      Storage.deleteRecord(id);
+      Inquiry.close();
+      notifyDataChanged();
+      showSavedToast('已删除');
     };
   }
 
@@ -458,8 +468,8 @@ var App = (function() {
     var html = '<div class="modal-content modal-content-compact" style="position:relative">' +
       '<button class="btn-back" id="edit-back">← 返回</button>' +
       '<div class="modal-title" style="font-size:18px;margin-bottom:6px">调整记录</div>' +
-      '<textarea class="text-input" id="edit-text" rows="2" placeholder="内容..." style="margin-bottom:8px">' + current + '</textarea>' +
-      '<input type="text" class="text-input" id="edit-detail" placeholder="补充说明（可选）" value="' + detail + '" style="margin-bottom:10px">' +
+      '<input type="text" class="text-input" id="edit-text" placeholder="主题（必填）" value="' + escapeHtml(current) + '" style="margin-bottom:8px">' +
+      '<textarea class="text-input" id="edit-detail" rows="3" placeholder="补充说明（可选）..." style="margin-bottom:10px;line-height:1.5">' + escapeHtml(detail) + '</textarea>' +
       '<div class="cat-picker-compact">' +
       tabsHTML +
       panelsHTML +

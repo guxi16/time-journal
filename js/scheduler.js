@@ -634,7 +634,7 @@ var Scheduler = (function() {
           };
         });
         document.getElementById('sleep-force-yes').onclick = function() {
-          Storage.saveSleepData({ date: Storage.today(), bedTime: settingsSleepNow(), wakeTime: '' });
+          Storage.patchSleepData(Storage.today(), { bedTime: settingsSleepNow(), wakeTime: '', bedAt: Date.now() });
           Inquiry.close();
           done();
         };
@@ -662,13 +662,13 @@ var Scheduler = (function() {
         scheduleNextSleepCheck();
       };
       document.getElementById('sleep-now').onclick = function() {
-        Storage.saveSleepData({ date: Storage.today(), bedTime: settingsSleepNow(), wakeTime: '' });
+        Storage.patchSleepData(Storage.today(), { bedTime: settingsSleepNow(), wakeTime: '', bedAt: Date.now() });
         Inquiry.close();
         done();
         notifyTiny('晚安，顾顾 🌙');
       };
       document.getElementById('sleep-30').onclick = function() {
-        Storage.saveSleepData({ date: Storage.today(), bedTime: settingsSleepNow(), wakeTime: '' });
+        Storage.patchSleepData(Storage.today(), { bedTime: settingsSleepNow(), wakeTime: '', bedAt: Date.now() });
         Inquiry.close();
         done();
         // 30 分钟后第二次催

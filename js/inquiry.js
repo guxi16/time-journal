@@ -104,10 +104,10 @@ var Inquiry = (function() {
       '</div>' +
       (isLink ?
       '<input type="url" class="text-input" id="link-url" placeholder="https://...">' :
-      '<textarea class="text-input" id="say-text" rows="3" placeholder="想写点什么..."></textarea>') +
+      '<textarea class="text-input" id="say-text" rows="3" placeholder="想写点什么…（必填）"></textarea>') +
       '<input type="text" class="text-input" id="content-title" placeholder="' +
       (isLink ? '这个链接是关于什么的？（必填）' : '一句话主题（必填）') + '">' +
-      '<textarea class="text-input" id="content-extra" rows="2" placeholder="补充说明（可选）..."></textarea>' +
+      '<textarea class="text-input" id="content-extra" rows="2" placeholder="补充说明（可选）…"></textarea>' +
       '<button class="btn-primary" id="btn-save-content">保存</button>';
   }
 
