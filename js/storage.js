@@ -350,6 +350,29 @@ var Storage = (function() {
     setStore('sleepData', list);
   }
 
+  // 只更新当天某一天的某几个字段（用于手动修正，不覆盖其他字段）
+  function patchSleepData(date, patch) {
+    var list = getStore('sleepData') || [];
+    var found = null;
+    list = list.map(function(d) {
+      if (d.date === date) {
+        for (var k in patch) d[k] = patch[k];
+        found = d;
+      }
+      return d;
+    });
+    if (!found) {
+      var data = { date: date, bedTime: '', wakeTime: '', napTime: '' };
+      for (var k2 in patch) data[k2] = patch[k2];
+      list.push(data);
+      list.sort(function(a, b) { return a.date < b.date ? -1 : 1; });
+      found = data;
+    }
+    if (list.length > 90) list = list.slice(-90);
+    setStore('sleepData', list);
+    return found;
+  }
+
   function getSleepData(days) {
     days = days || 30;
     var list = getStore('sleepData') || [];
@@ -455,6 +478,7 @@ var Storage = (function() {
     saveAchievementsHistory: saveAchievementsHistory,
     categorizeRecord: categorizeRecord,
     saveSleepData: saveSleepData,
+    patchSleepData: patchSleepData,
     getSleepData: getSleepData,
     saveChatMessages: saveChatMessages,
     getChatMessages: getChatMessages,

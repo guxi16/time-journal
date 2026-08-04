@@ -1,4 +1,4 @@
-const CACHE = 'timejournal-v25';
+const CACHE = 'timejournal-v26';
 // 基于部署路径动态拼接（兼容 GitHub Pages 子路径 /time-journal/）
 const BASE = self.registration.scope;
 const FILES = [
@@ -8,7 +8,7 @@ const FILES = [
   BASE + 'js/scheduler.js', BASE + 'js/review.js', BASE + 'js/achievements.js',
   BASE + 'js/weekly.js', BASE + 'js/chart.js', BASE + 'js/treehole.js', BASE + 'js/tarot.js',
   BASE + 'js/breathing.js', BASE + 'js/music.js', BASE + 'js/lifebook.js',
-  BASE + 'js/settings.js', BASE + 'js/app.js'
+  BASE + 'js/settings.js', BASE + 'js/sleep.js', BASE + 'js/app.js'
 ];
 
 self.addEventListener('install', e => {

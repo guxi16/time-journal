@@ -63,25 +63,39 @@
           </button>
         </div>
 
-        <div class="section-title" style="margin-top:18px">作息记录</div>
-        <div class="review-routine" style="display:flex;gap:8px;align-items:center;margin-bottom:14px">
-          <div style="flex:1">
-            <label style="font-size:11px;color:var(--text-tertiary);display:block;margin-bottom:4px">今晚入睡</label>
-            <input type="time" id="rv-record-bed" class="text-input" style="width:100%;padding:9px 12px">
-          </div>
-          <div style="flex:1">
-            <label style="font-size:11px;color:var(--text-tertiary);display:block;margin-bottom:4px">明早起床</label>
-            <input type="time" id="rv-record-wake" class="text-input" style="width:100%;padding:9px 12px">
-          </div>
-          <button class="btn-secondary" id="btn-rv-save-routine" style="padding:9px 12px;flex-shrink:0;margin-top:15px">保存</button>
-        </div>
-
         <div class="section-title" style="margin-top:18px">灵感管理</div>
         <div id="inspo-banner-review" class="inspo-banner-review" style="display:none"></div>
         <button class="action-card wide" id="btn-inspo-add" style="width:100%;padding:14px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:14px">
           <svg class="action-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           <span>手动加灵感</span>
         </button>
+      </div>
+    </div>
+
+    <div class="page" id="page-sleep">
+      <header class="page-header">
+        <div class="page-title">作息</div>
+      </header>
+      <div class="sleep-content">
+        <div class="sleep-today-card" id="sleep-today-card">
+          <div>
+            <div class="sleep-today-label">昨晚入睡</div>
+            <div class="sleep-today-value" id="sleep-bed-value">--:--</div>
+          </div>
+          <div class="sleep-today-divider"></div>
+          <div>
+            <div class="sleep-today-label">今早起床</div>
+            <div class="sleep-today-value" id="sleep-wake-value">--:--</div>
+          </div>
+        </div>
+
+        <div class="sleep-actions">
+          <button class="sleep-btn" id="btn-sleep-now"><span class="sleep-btn-icon" style="color:var(--accent)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></span><span>我睡了</span></button>
+          <button class="sleep-btn" id="btn-wake-now"><span class="sleep-btn-icon" style="color:#c9a96e"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/><line x1="4" y1="12" x2="2" y2="12"/><line x1="22" y1="12" x2="20" y2="12"/><line x1="5" y1="5" x2="7" y2="7"/><line x1="17" y1="17" x2="19" y2="19"/><line x1="5" y1="19" x2="7" y2="17"/><line x1="17" y1="7" x2="19" y2="5"/></svg></span><span>我醒了</span></button>
+        </div>
+
+        <button class="btn-secondary" id="btn-sleep-edit" style="width:100%;margin-top:10px;padding:11px">手动改时间（补录/修正）</button>
+        <div style="font-size:11px;color:var(--text-tertiary);line-height:1.6;margin-top:6px">自动记的时间可能不准，清醒后可以来这里修正。只改当天，不影响历史。</div>
       </div>
     </div>
 
@@ -188,22 +202,6 @@
         </div>
 
         <div class="setting-group">
-          <div class="setting-group-title">作息记录（手动修正）</div>
-          <div class="setting-row">
-            <div class="setting-mini">
-              <label>昨晚入睡</label>
-              <input type="time" id="set-record-bed">
-            </div>
-            <div class="setting-mini">
-              <label>今早起床</label>
-              <input type="time" id="set-record-wake">
-            </div>
-          </div>
-          <div style="font-size:11px;color:var(--text-tertiary);line-height:1.6;margin-top:6px">睡前填入睡时间，早上醒来填起床时间，可随时修正。只改今天的数据，不影响历史记录。</div>
-          <button class="btn-secondary" id="btn-save-routine" style="width:100%;margin-top:8px;padding:9px">保存作息记录</button>
-        </div>
-
-        <div class="setting-group">
           <div class="setting-group-title">问询提醒</div>
           <div class="setting-row">
             <div class="setting-mini">
@@ -290,6 +288,10 @@
       <svg class="nav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M20 17c-0.9 0-1.8-0.1-2.7-0.4C15.1 16 13.1 14.5 12 12.5c-1.1-2-3.1-3.5-5.3-4.1C5.8 8.1 4.9 8 4 8"/><circle cx="22" cy="17" r="1.5"/></svg>
       <span class="nav-label">回顾</span>
     </button>
+    <button class="nav-btn" data-page="sleep">
+      <svg class="nav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 4v16M22 4v16M2 16h20l-2-6-4 2-4-6-4 4-4-2z"/></svg>
+      <span class="nav-label">作息</span>
+    </button>
     <button class="nav-btn" data-page="growth">
       <svg class="nav-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 21V11"/><path d="M7 14.5C8.5 12 10.5 11 12 11C13.5 11 15.5 12 17 14.5"/><path d="M4 17c2.5-4 5.5-6 8-6"/><path d="M20 17c-2.5-4-5.5-6-8-6"/><circle cx="12" cy="7" r="1"/></svg>
       <span class="nav-label">成长</span>
@@ -318,6 +320,7 @@
   <script src="js/music.js"></script>
   <script src="js/lifebook.js"></script>
   <script src="js/settings.js"></script>
+  <script src="js/sleep.js"></script>
   <script src="js/scheduler.js"></script>
   <script src="js/app.js"></script>
 

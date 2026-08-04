@@ -63,6 +63,8 @@ var App = (function() {
     bindInspoButtons();
     bindRecordActions();
 
+    if (typeof Sleep !== 'undefined' && Sleep.init) Sleep.init();
+
     refreshTimeline();
 
     Achievement.updateDisplay();
@@ -106,7 +108,9 @@ var App = (function() {
     if (page === 'review') {
       updateReviewPreview();
       renderInspoList();
-      syncRoutineInputs();
+    }
+    if (page === 'sleep') {
+      if (typeof Sleep !== 'undefined' && Sleep.renderToday) Sleep.renderToday();
     }
 
     var ov = document.getElementById('overlay');
@@ -702,16 +706,7 @@ var App = (function() {
   }
 
   function syncRoutineInputs() {
-    try {
-      var sleepData = Storage.getSleepData(1);
-      var last = sleepData[sleepData.length - 1];
-      var bedEl = document.getElementById('rv-record-bed');
-      var wakeEl = document.getElementById('rv-record-wake');
-      if (last) {
-        if (bedEl && last.bedTime) bedEl.value = last.bedTime;
-        if (wakeEl && last.wakeTime) wakeEl.value = last.wakeTime;
-      }
-    } catch(e) {}
+    // 作息输入已迁移到作息页（Sleep 模块），此函数保留为空实现避免调用报错
   }
 
   function updateDateDisplay() {

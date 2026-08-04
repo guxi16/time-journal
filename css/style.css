@@ -1144,15 +1144,15 @@ body {
   pointer-events: none;
 }
 
-/* 浮岛玻璃背景：伪元素做容器，4 个 nav-btn 浮在它上面 */
+/* 浮岛玻璃背景：伪元素做容器，5 个 nav-btn 浮在它上面 */
 .bottom-nav::before {
   content: '';
   position: absolute;
-  left: 16px;
-  right: 16px;
+  left: 12px;
+  right: 12px;
   bottom: max(16px, env(safe-area-inset-bottom, 16px));
   height: 64px;
-  max-width: 420px;
+  max-width: 460px;
   margin: 0 auto;
   background: rgba(255, 252, 248, 0.78);
   backdrop-filter: blur(28px) saturate(180%);
@@ -1168,23 +1168,23 @@ body {
 
 .nav-btn {
   flex: 1;
-  max-width: 80px;
-  padding: 7px 8px;
+  max-width: 84px;
+  padding: 7px 2px;
   border: none;
   background: none;
   color: var(--text-tertiary);
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 500;
   cursor: pointer;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
   font-family: var(--font);
   transition: all 0.2s;
   border-radius: 18px;
   position: relative;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.2px;
   pointer-events: auto;
 }
 
@@ -1893,3 +1893,93 @@ body {
   .modal-content { padding: 24px 18px; }
   .tarot-card { width: 84px; height: 140px; }
 }
+
+/* ===== 作息页 ===== */
+.sleep-content { padding-bottom: 48px; }
+
+.sleep-today-card {
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  padding: 22px 16px;
+  display: grid;
+  grid-template-columns: 1fr 1px 1fr;
+  gap: 0;
+  text-align: center;
+  margin-bottom: 16px;
+  align-items: center;
+}
+
+.sleep-today-divider {
+  width: 1px;
+  height: 36px;
+  background: var(--border-subtle);
+  margin: 0 auto;
+}
+
+.sleep-today-label {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.sleep-today-value {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.5px;
+}
+
+.sleep-today-value.empty {
+  color: var(--text-tertiary);
+  font-weight: 400;
+}
+
+.sleep-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.sleep-btn {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius);
+  padding: 18px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-family: var(--font);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.sleep-btn:active {
+  transform: scale(0.95);
+  background: var(--accent-soft);
+  border-color: var(--border-glow);
+}
+
+.sleep-btn-icon {
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 2px;
+}
+
+.sleep-btn-icon svg {
+  width: 26px;
+  height: 26px;
+}
+
+#btn-sleep-now .sleep-btn-icon { filter: none; }

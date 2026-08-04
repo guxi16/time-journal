@@ -31,31 +31,6 @@ var Settings = (function() {
       var tip = mb > 3.5 ? '（快满了，建议导出后清除数据）' : '（充足）';
       usageEl.innerHTML = '已用 ' + mb + ' MB ' + tip;
     }
-
-    // 回填今日作息记录（手动修正）
-    try {
-      var todaySleep = Storage.getSleepData(1);
-      var lastRecord = todaySleep[todaySleep.length - 1];
-      if (lastRecord) {
-        var bedEl = document.getElementById('set-record-bed');
-        var wakeEl = document.getElementById('set-record-wake');
-        if (bedEl && lastRecord.bedTime) bedEl.value = lastRecord.bedTime;
-        if (wakeEl && lastRecord.wakeTime) wakeEl.value = lastRecord.wakeTime;
-      }
-    } catch(e) {}
-  }
-
-  function saveRoutine() {
-    // 兼容设置页(set-record-*)和回顾页(rv-record-*)两个入口
-    var bedEl = document.getElementById('set-record-bed') || document.getElementById('rv-record-bed');
-    var wakeEl = document.getElementById('set-record-wake') || document.getElementById('rv-record-wake');
-    if (!bedEl) return;
-    var bed = bedEl.value;
-    var wake = wakeEl ? wakeEl.value : '';
-    if (!bed && !wake) { alert('请至少填一个时间'); return; }
-    Storage.saveSleepData({ date: Storage.today(), bedTime: bed || '', wakeTime: wake || '' });
-    alert('作息记录已保存 ✅');
-    if (window.App && App.notifyDataChanged) App.notifyDataChanged();
   }
 
   function bindEvents() {
@@ -84,12 +59,6 @@ var Settings = (function() {
         location.reload();
       }
     });
-
-    var saveRoutineBtn = document.getElementById('btn-save-routine');
-    if (saveRoutineBtn) saveRoutineBtn.addEventListener('click', saveRoutine);
-
-    var rvSaveBtn = document.getElementById('btn-rv-save-routine');
-    if (rvSaveBtn) rvSaveBtn.addEventListener('click', saveRoutine);
   }
 
   function saveAll() {
