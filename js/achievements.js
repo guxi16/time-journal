@@ -335,6 +335,9 @@ var Achievement = (function() {
     setTimeout(function() { b.remove(); }, 3000);
   }
 
+  // 挂到全局：app.js / scheduler.js 都在用这个轻提示
+  if (typeof window !== 'undefined') window.notifyTiny = notifyTiny;
+
   function createConfetti() {
     var c = document.createElement('div'); c.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:199';
     document.body.appendChild(c);
