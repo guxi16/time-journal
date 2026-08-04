@@ -181,38 +181,40 @@ var App = (function() {
     var html = '<div class="modal-content" style="position:relative">' +
       '<button class="btn-back" id="inspo-back">← 返回</button>' +
       '<div class="modal-title">加一个灵感</div>' +
-      '<div class="modal-text" style="margin-bottom:12px">紧急程度？</div>' +
-      '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px">' +
-      '<button class="action-card" data-urgency="low" style="padding:14px 6px"><span class="action-icon" style="color:#7a9ec4">' + SVG.leaf + '</span><span style="color:#7a9ec4">宽松</span></button>' +
-      '<button class="action-card" data-urgency="mid" style="padding:14px 6px"><span class="action-icon" style="color:#c9a96e">' + SVG.bell + '</span><span style="color:#c9a96e">中等</span></button>' +
-      '<button class="action-card" data-urgency="high" style="padding:14px 6px"><span class="action-icon" style="color:#c9847a">' + SVG.skull + '</span><span style="color:#c9847a">紧急</span></button>' +
+      '<div class="urgency-picker">' +
+      '<button class="urg-chip" data-urgency="low" style="color:#7a9ec4">' + SVG.leaf + '<span>宽松</span></button>' +
+      '<button class="urg-chip" data-urgency="mid" style="color:#c9a96e">' + SVG.bell + '<span>中等</span></button>' +
+      '<button class="urg-chip" data-urgency="high" style="color:#c9847a">' + SVG.bird + '<span>紧急</span></button>' +
       '</div>' +
-      '<textarea class="text-input" id="inspo-text" rows="3" placeholder="写下你的灵感..."></textarea>' +
-      '<button class="btn-primary" id="inspo-save" style="margin-top:8px">存下来</button>' +
+      '<input type="text" class="text-input" id="inspo-title" placeholder="主题（必填）" style="margin-top:10px">' +
+      '<textarea class="text-input" id="inspo-text" rows="5" placeholder="详情（选填）..."></textarea>' +
+      '<button class="btn-primary" id="inspo-save" style="margin-top:10px">存下来</button>' +
       '</div>';
     document.getElementById('modal').innerHTML = html;
     document.getElementById('overlay').style.display = 'block';
     document.getElementById('modal').style.display = 'flex';
     document.getElementById('inspo-back').onclick = Inquiry.close;
-    document.getElementById('inspo-text').focus();
+    document.getElementById('inspo-title').focus();
 
     var selectedUrgency = 'low';
+    // 默认选中"宽松"高亮
+    var defaultChip = document.querySelector('.urg-chip[data-urgency="low"]');
+    if (defaultChip) { defaultChip.classList.add('urg-active'); }
     document.querySelectorAll('[data-urgency]').forEach(function(btn) {
       btn.onclick = function() {
         selectedUrgency = btn.dataset.urgency;
-        document.querySelectorAll('[data-urgency]').forEach(function(b) {
-          b.style.borderColor = 'var(--border-subtle)';
-          b.style.background = 'var(--bg-card)';
+        document.querySelectorAll('.urg-chip').forEach(function(b) {
+          b.classList.remove('urg-active');
         });
-        btn.style.borderColor = 'var(--accent)';
-        btn.style.background = 'var(--accent-soft)';
+        btn.classList.add('urg-active');
       };
     });
 
     document.getElementById('inspo-save').onclick = function() {
-      var text = (document.getElementById('inspo-text').value || '').trim();
-      if (!text) { document.getElementById('inspo-text').focus(); return; }
-      Storage.saveInspiration({ content: text, urgency: selectedUrgency, source: 'self' });
+      var title = (document.getElementById('inspo-title').value || '').trim();
+      if (!title) { document.getElementById('inspo-title').focus(); return; }
+      var detail = (document.getElementById('inspo-text').value || '').trim();
+      Storage.saveInspiration({ title: title, content: detail, urgency: selectedUrgency, source: 'self' });
       Inquiry.close();
       renderInspoList();
       checkInspoBanner();
@@ -230,25 +232,73 @@ var App = (function() {
     }
     container.style.display = 'block';
     var html = '';
-    list.slice(0, 8).forEach(function(inspo) {
+    list.slice(0, 20).forEach(function(inspo) {
       var urgClass = inspo.urgency === 'high' ? 'urgency-high' : inspo.urgency === 'mid' ? 'urgency-mid' : 'urgency-low';
       var urgLabel = inspo.urgency === 'high' ? '紧急' : inspo.urgency === 'mid' ? '中等' : '宽松';
-      var srcLabel = inspo.source === 'system' ? '系统' : '我加的';
-      html += '<div class="inspo-item">' +
-        '<span class="inspo-source">' + srcLabel + '</span>' +
-        '<span class="inspo-content">' + escapeHtml(inspo.content) + '</span>' +
+      var urgIcon = inspo.urgency === 'high' ? SVG.bird : inspo.urgency === 'mid' ? SVG.bell : SVG.leaf;
+      var timeStr = formatInspoTime(inspo.timestamp);
+      // 主题：优先 title，兼容旧数据用 content
+      var title = inspo.title || inspo.content || '灵感';
+      html += '<div class="inspo-card" data-id="' + inspo.id + '">' +
+        '<span class="inspo-card-icon">' + urgIcon + '</span>' +
+        '<span class="inspo-card-title">' + escapeHtml(title) + '</span>' +
         '<span class="inspo-urgency ' + urgClass + '">' + urgLabel + '</span>' +
-        '<button class="inspo-done" data-id="' + inspo.id + '">完成</button>' +
+        '<span class="inspo-card-time">' + timeStr + '</span>' +
         '</div>';
     });
     container.innerHTML = html;
-    container.querySelectorAll('.inspo-done').forEach(function(btn) {
-      btn.onclick = function() {
-        Storage.markInspirationDone(btn.dataset.id);
-        renderInspoList();
-        checkInspoBanner();
+    // 点卡片 → 弹窗看完整内容
+    container.querySelectorAll('.inspo-card').forEach(function(card) {
+      card.onclick = function() {
+        showInspoDetail(card.getAttribute('data-id'));
       };
     });
+  }
+
+  // 灵感详情弹窗：完整主题 + 完整内容 + 时间 + 紧急度 + 已完成
+  function showInspoDetail(id) {
+    var all = Storage.getAllInspirations();
+    if (!all) return;
+    var inspo = null;
+    for (var i = 0; i < all.length; i++) {
+      if (all[i].id === id) { inspo = all[i]; break; }
+    }
+    if (!inspo) { showErrorToast('没找到这条灵感'); return; }
+    var urgLabel = inspo.urgency === 'high' ? '紧急' : inspo.urgency === 'mid' ? '中等' : '宽松';
+    var urgIcon = inspo.urgency === 'high' ? SVG.bird : inspo.urgency === 'mid' ? SVG.bell : SVG.leaf;
+    var title = inspo.title || inspo.content || '灵感';
+    var detail = (inspo.title && inspo.content) ? inspo.content : '';
+    var timeStr = formatInspoTime(inspo.timestamp);
+
+    var html = '<div class="modal-content" style="position:relative">' +
+      '<button class="btn-back" id="inspo-detail-back">×</button>' +
+      '<div class="modal-title" style="display:flex;align-items:center;justify-content:center;gap:8px"><span style="width:24px;height:24px;display:inline-flex;color:var(--mauve)">' + urgIcon + '</span>' + escapeHtml(title) + '</div>' +
+      '<div class="modal-text" style="font-size:12px">' + urgLabel + ' · ' + timeStr + '</div>' +
+      (detail ? '<div class="inspo-detail-body">' + escapeHtml(detail).replace(/\n/g, '<br>') + '</div>' : '<div class="inspo-detail-body" style="color:var(--text-tertiary)">（没有详情）</div>') +
+      '<button class="btn-primary" id="inspo-detail-done" style="background:var(--mauve)">已完成 ✓</button>' +
+      '</div>';
+    document.getElementById('modal').innerHTML = html;
+    document.getElementById('overlay').style.display = 'block';
+    document.getElementById('modal').style.display = 'flex';
+    document.getElementById('inspo-detail-back').onclick = Inquiry.close;
+    document.getElementById('inspo-detail-done').onclick = function() {
+      Storage.markInspirationDone(id);
+      Inquiry.close();
+      renderInspoList();
+      checkInspoBanner();
+      notifyTiny('完成一个灵感 🎉');
+    };
+  }
+
+  function formatInspoTime(ts) {
+    try {
+      var d = new Date(ts);
+      var now = new Date();
+      var sameDay = d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+      var hm = ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
+      if (sameDay) return hm;
+      return (d.getMonth() + 1) + '/' + d.getDate() + ' ' + hm;
+    } catch(e) { return ''; }
   }
 
   function escapeHtml(s) {
@@ -609,19 +659,36 @@ var App = (function() {
     var pending = Storage.getPendingInspirations();
     var banner = document.getElementById('inspo-banner');
     if (!banner) return;
-    if (pending && pending.length > 0 && pending[0] && pending[0].date && pending[0].date <= Storage.today()) {
+    // 首页只显示一条：紧急>中等>宽松，同紧急按最早（getPendingInspirations 已排序）
+    if (pending && pending.length > 0) {
       var inspo = pending[0];
+      var title = inspo.title || inspo.content || '灵感';
+      var detail = (inspo.title && inspo.content) ? inspo.content : inspo.content;
+      var urgClass = inspo.urgency === 'high' ? 'urgency-high' : inspo.urgency === 'mid' ? 'urgency-mid' : 'urgency-low';
+      var urgLabel = inspo.urgency === 'high' ? '紧急' : inspo.urgency === 'mid' ? '中等' : '宽松';
+      var timeStr = formatInspoTime(inspo.timestamp);
+      var preview = detail || '';
       banner.innerHTML =
-        '<div class="banner-title">💡 昨日存档的灵感</div>' +
-        '<div class="banner-text">' + inspo.content + '</div>' +
+        '<div class="banner-title">💡 存档的灵感</div>' +
+        '<div class="banner-inspo"><span class="inspo-urgency ' + urgClass + '">' + urgLabel + '</span><span class="banner-inspo-title">' + escapeHtml(title) + '</span><span class="banner-inspo-time">' + timeStr + '</span></div>' +
+        (preview ? '<div class="banner-text">' + escapeHtml(preview) + '</div>' : '') +
         '<button class="banner-done" data-id="' + inspo.id + '">已完成 ✓</button>';
       banner.style.display = 'block';
-      banner.querySelector('.banner-done').onclick = function() {
+      // 点整个横幅 → 详情弹窗
+      banner.onclick = function(e) {
+        if (e.target && e.target.classList && e.target.classList.contains('banner-done')) return;
+        showInspoDetail(inspo.id);
+      };
+      banner.querySelector('.banner-done').onclick = function(e) {
+        e.stopPropagation();
         Storage.markInspirationDone(inspo.id);
-        banner.style.display = 'none';
+        checkInspoBanner();
+        renderInspoList();
+        notifyTiny('完成一个灵感 🎉');
       };
     } else {
       banner.style.display = 'none';
+      banner.onclick = null;
     }
   }
 

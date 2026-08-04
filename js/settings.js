@@ -60,7 +60,7 @@ var Settings = (function() {
 
   function bindEvents() {
     var inputs = ['set-sleep-target','set-wake-target','set-inquiry-interval',
-      'set-day-start','set-shower-start','set-shower-end','set-style-mode','set-inspo-time','set-inspo-start','set-status-mode'];
+      'set-day-start','set-shower-start','set-shower-end','set-style-mode','set-inspo-interval','set-inspo-start','set-status-mode'];
     inputs.forEach(function(id) {
       var el = document.getElementById(id);
       if (!el) return;

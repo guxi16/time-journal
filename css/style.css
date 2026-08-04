@@ -473,7 +473,8 @@ body {
 
 .inspo-banner-review .inspo-item:last-child { border-bottom: none; }
 
-.inspo-banner-review .inspo-urgency {
+.inspo-banner-review .inspo-urgency,
+.banner-inspo .inspo-urgency {
   font-size: 9px;
   padding: 2px 7px;
   border-radius: 8px;
@@ -481,17 +482,20 @@ body {
   flex-shrink: 0;
 }
 
-.inspo-banner-review .urgency-low {
+.inspo-banner-review .urgency-low,
+.banner-inspo .urgency-low {
   background: rgba(122,158,196,0.12);
   color: #7a9ec4;
 }
 
-.inspo-banner-review .urgency-mid {
+.inspo-banner-review .urgency-mid,
+.banner-inspo .urgency-mid {
   background: rgba(201,169,110,0.18);
   color: #8b6331;
 }
 
-.inspo-banner-review .urgency-high {
+.inspo-banner-review .urgency-high,
+.banner-inspo .urgency-high {
   background: rgba(201,132,122,0.18);
   color: #c97a6a;
 }
@@ -528,6 +532,146 @@ body {
   border: none;
   cursor: pointer;
   font-family: var(--font);
+}
+
+/* ===== 灵感卡片（任务卡片式） ===== */
+.urgency-picker {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.urg-chip {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 6px 8px;
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-card);
+  font-size: 12px;
+  cursor: pointer;
+  font-family: var(--font);
+  font-weight: 500;
+  transition: all 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.urg-chip svg { width: 14px; height: 14px; }
+
+.urg-chip.urg-active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+.urg-chip:active { transform: scale(0.96); }
+
+.inspo-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+  min-height: 46px;
+}
+
+.inspo-card:active {
+  background: var(--accent-soft);
+  border-color: var(--border-glow);
+}
+
+.inspo-card-icon {
+  width: 20px;
+  height: 20px;
+  color: var(--mauve);
+  flex-shrink: 0;
+  display: inline-flex;
+}
+
+.inspo-card-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.inspo-card-title {
+  flex: 1;
+  font-size: 13px;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.inspo-card-time {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 首页灵感横幅 */
+.banner-inspo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  color: var(--text-primary);
+}
+
+.banner-inspo svg {
+  width: 18px;
+  height: 18px;
+  color: var(--mauve);
+  flex-shrink: 0;
+}
+
+.banner-inspo-title {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.banner-inspo-time {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.banner-text {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 灵感详情弹窗 */
+.inspo-detail-body {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 14px 16px;
+  font-size: 14px;
+  color: var(--text-primary);
+  line-height: 1.7;
+  margin-bottom: 14px;
+  max-height: 240px;
+  overflow-y: auto;
+  word-break: break-word;
 }
 
 .action-svg {

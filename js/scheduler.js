@@ -7,6 +7,7 @@ var Scheduler = (function() {
   var inspoTimer = null;
   var reviewTimer = null;
   var dailyTimer = null;
+  var countdownTimer = null;
   var isVisible = true;
   var lastInquiryHour = -1;
   var lastInquiryTitle = '';
@@ -49,6 +50,12 @@ var Scheduler = (function() {
     dailyTimer = setInterval(dailyCheck, 60000);
     showMorningIfNeeded();
     checkInquiryOnOpen();
+    // 恢复未完成的灵感倒计时检查
+    try {
+      var cd = Storage.getCountdown();
+      if (cd && cd.endAt && Date.now() < cd.endAt) scheduleCountdownCheck();
+      else if (cd && cd.endAt) { Storage.clearCountdown(); }
+    } catch(e) {}
   }
 
   function requestNotification() {
@@ -437,52 +444,138 @@ var Scheduler = (function() {
 
   function fireInspo() {
     enqueuePopup('inspo', function(done) {
-      Inquiry.show('你现在有灵感想做吗？', function(result) {
-        done();
-        if (result.type === 'skipped') return;
-        var content = (result.content || '').trim();
-        if (!content) {
-          InspirationModule.showSimple();
-          return;
-        }
-        Storage.saveInspiration({ content: content, urgency: 'mid', source: 'system' });
-        Inquiry.close();
-        window.notifyDataChanged && window.notifyDataChanged();
-        notifyTiny('灵感已存档，明天首页提醒你 📌');
-      });
+      showInspoMain(done);
     });
   }
 
-  var InspirationModule = {
-    showSimple: function() {
-      var html = '<div class="modal-content" style="position:relative">' +
-        '<button class="btn-back" id="inspo-back">← 返回</button>' +
-        '<div class="modal-title">现在有灵感想做吗？</div>' +
-        '<div class="modal-text">有的话写下来，明天提醒你继续</div>' +
-        '<textarea class="text-input" id="inspo-text" rows="3" placeholder="比如：画一个新角色的稿子..."></textarea>' +
-        '<div style="display:flex;gap:8px;margin-top:8px">' +
-        '<button class="btn-primary" id="inspo-yes" style="background:var(--accent)">存下来，明天继续</button>' +
-        '<button class="btn-secondary" id="inspo-no" style="flex:0 0 auto;padding:10px 16px">没有</button>' +
-        '</div></div>';
-      document.getElementById('modal').innerHTML = html;
-      document.getElementById('overlay').style.display = 'block';
-      document.getElementById('modal').style.display = 'flex';
+  // ---- 灵感弹窗（三选项：存档明天 / 设倒计时 / 直接去做） ----
+  function showInspoMain(done) {
+    var html = '<div class="modal-content" style="position:relative">' +
+      '<button class="btn-back" id="inspo-close">×</button>' +
+      '<div class="modal-title" style="display:flex;align-items:center;justify-content:center;gap:8px"><span style="width:24px;height:24px;display:inline-flex;color:var(--mauve)">' + SVG.lamp + '</span>现在有灵感想做吗？</div>' +
+      '<div class="modal-text">抓住它，别让它跑掉</div>' +
+      '<div style="display:flex;flex-direction:column;gap:8px;margin-top:12px">' +
+      '<button class="btn-primary" id="inspo-save" style="background:var(--mauve)">存档，明天继续</button>' +
+      '<button class="btn-primary" id="inspo-countdown" style="background:var(--sage)">设个倒计时</button>' +
+      '<button class="btn-secondary" id="inspo-now">现在就去搞</button>' +
+      '</div></div>';
+    document.getElementById('modal').innerHTML = html;
+    document.getElementById('overlay').style.display = 'block';
+    document.getElementById('modal').style.display = 'flex';
 
-      document.getElementById('inspo-back').onclick = Inquiry.close;
-      document.getElementById('inspo-no').onclick = Inquiry.close;
-      document.getElementById('inspo-yes').onclick = function() {
-        var text = (document.getElementById('inspo-text').value || '').trim();
-        if (!text) {
-          document.getElementById('inspo-text').focus();
-          return;
-        }
-        Storage.saveInspiration({ content: text, urgency: 'mid', source: 'system' });
+    document.getElementById('inspo-close').onclick = function() {
+      Inquiry.close();
+      done();
+    };
+    document.getElementById('inspo-save').onclick = function() {
+      showInspoSave(done);
+    };
+    document.getElementById('inspo-countdown').onclick = function() {
+      showInspoCountdown(done);
+    };
+    document.getElementById('inspo-now').onclick = function() {
+      // 直接去做：不存档，记一条灵感记录方便回顾
+      Storage.saveRecord({ type: 'preset', category: '灵感', content: '现在去搞事了', title: '现在去搞事了', smartCategory: '灵感' });
+      Inquiry.close();
+      done();
+      window.notifyDataChanged && window.notifyDataChanged();
+      notifyTiny('去吧！搞完回来记一笔 💪');
+    };
+  }
+
+  function showInspoSave(done) {
+    var html = '<div class="modal-content" style="position:relative">' +
+      '<button class="btn-back" id="inspo-back">← 返回</button>' +
+      '<div class="modal-title" style="font-size:18px">想做什么？</div>' +
+      '<div class="modal-text">写下来，明天首页提醒你继续</div>' +
+      '<textarea class="text-input" id="inspo-text" rows="3" placeholder="比如：画一个新角色的稿子..."></textarea>' +
+      '<div style="display:flex;gap:8px;margin-top:8px">' +
+      '<button class="btn-primary" id="inspo-yes" style="background:var(--mauve)">存下来，明天继续</button>' +
+      '</div></div>';
+    document.getElementById('modal').innerHTML = html;
+    document.getElementById('overlay').style.display = 'block';
+    document.getElementById('modal').style.display = 'flex';
+
+    document.getElementById('inspo-back').onclick = function() {
+      showInspoMain(done);
+    };
+    document.getElementById('inspo-yes').onclick = function() {
+      var text = (document.getElementById('inspo-text').value || '').trim();
+      if (!text) {
+        document.getElementById('inspo-text').focus();
+        return;
+      }
+      // 主题 = 输入内容，详情留空（晚间快捷存档，主题即内容）
+      Storage.saveInspiration({ title: text, content: '', urgency: 'mid', source: 'system' });
+      Inquiry.close();
+      done();
+      window.notifyDataChanged && window.notifyDataChanged();
+      notifyTiny('灵感已存档，明天首页提醒你 📌');
+    };
+  }
+
+  function showInspoCountdown(done) {
+    var html = '<div class="modal-content" style="position:relative">' +
+      '<button class="btn-back" id="inspo-cd-back">← 返回</button>' +
+      '<div class="modal-title" style="font-size:18px">设个倒计时</div>' +
+      '<div class="modal-text">想做的事写下来，设个时间，到点提醒你</div>' +
+      '<textarea class="text-input" id="inspo-cd-text" rows="2" placeholder="比如：画新角色的稿子"></textarea>' +
+      '<div class="preset-grid" style="margin-top:4px">' +
+      '<button class="preset-btn" data-cd-min="15"><span class="preset-label">15 分钟</span></button>' +
+      '<button class="preset-btn" data-cd-min="30"><span class="preset-label">30 分钟</span></button>' +
+      '<button class="preset-btn" data-cd-min="45"><span class="preset-label">45 分钟</span></button>' +
+      '<button class="preset-btn" data-cd-min="60"><span class="preset-label">60 分钟</span></button>' +
+      '</div></div>';
+    document.getElementById('modal').innerHTML = html;
+    document.getElementById('overlay').style.display = 'block';
+    document.getElementById('modal').style.display = 'flex';
+
+    document.getElementById('inspo-cd-back').onclick = function() {
+      showInspoMain(done);
+    };
+    document.querySelectorAll('#modal [data-cd-min]').forEach(function(btn) {
+      btn.onclick = function() {
+        var text = (document.getElementById('inspo-cd-text').value || '').trim() || '想做的事';
+        var minutes = parseInt(btn.getAttribute('data-cd-min'));
+        var endAt = Date.now() + minutes * 60000;
+        Storage.saveCountdown({ content: text, minutes: minutes, endAt: endAt });
         Inquiry.close();
-        window.notifyDataChanged && window.notifyDataChanged();
-        notifyTiny('灵感已存档，明天首页提醒你 📌');
+        done();
+        notifyTiny(minutes + ' 分钟后提醒你 ⏳');
+        scheduleCountdownCheck();
       };
-    }
-  };
+    });
+  }
+
+  function scheduleCountdownCheck() {
+    clearInterval(countdownTimer);
+    countdownTimer = setInterval(checkCountdown, 30000);
+    checkCountdown();
+  }
+
+  function checkCountdown() {
+    try {
+      var cd = Storage.getCountdown();
+      if (!cd || !cd.endAt) return;
+      if (Date.now() >= cd.endAt) {
+        // 到点：记录 + 通知 + 清除
+        Storage.clearCountdown();
+        clearInterval(countdownTimer);
+        Storage.saveRecord({ type: 'preset', category: '灵感', content: '倒计时结束：' + cd.content, title: '倒计时结束：' + cd.content, smartCategory: '灵感' });
+        window.notifyDataChanged && window.notifyDataChanged();
+        var body = '「' + cd.content + '」的倒计时到了，去搞它！';
+        sendNotification('⏰ 倒计时到啦', body);
+        // 页面可见时直接弹个提示
+        if (isVisible) {
+          var b = document.createElement('div');
+          b.style.cssText = 'position:fixed;top:70px;left:50%;transform:translateX(-50%);z-index:200;background:var(--mauve-soft);color:var(--mauve);padding:8px 18px;border-radius:14px;font-size:13px;border:1px solid rgba(168,153,196,0.3);pointer-events:none;transition:opacity .3s';
+          b.textContent = '⏰ 倒计时到啦：「' + cd.content + '」';
+          document.body.appendChild(b);
+          setTimeout(function() { b.style.opacity = '0'; setTimeout(function() { if (b.parentNode) b.parentNode.removeChild(b); }, 300); }, 4000);
+        }
+      }
+    } catch(e) {}
+  }
 
   function scheduleReview() {
     clearTimeout(reviewTimer);

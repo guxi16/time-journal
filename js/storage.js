@@ -97,12 +97,15 @@ var Storage = (function() {
   }
 
   function saveInspiration(inspo) {
-    inspo.id = uid();
-    inspo.timestamp = Date.now();
-    inspo.date = today();
-    inspo.completed = false;
+    inspo.id = inspo.id || uid();
+    inspo.timestamp = inspo.timestamp || Date.now();
+    inspo.date = inspo.date || today();
+    inspo.completed = inspo.completed || false;
     inspo.urgency = inspo.urgency || 'low';
     inspo.source = inspo.source || 'self';
+    // 兼容旧数据：只有 content 没有 title 时，把 content 当主题
+    inspo.title = inspo.title || inspo.content || '';
+    inspo.content = inspo.content || '';
     var list = getStore('inspirations') || [];
     list.unshift(inspo);
     setStore('inspirations', list);
@@ -111,7 +114,20 @@ var Storage = (function() {
 
   function getPendingInspirations() {
     var list = getStore('inspirations') || [];
-    return list.filter(function(i) { return !i.completed; });
+    var pending = list.filter(function(i) { return !i.completed; });
+    // 排序：紧急(high) > 中等(mid) > 宽松(low)，同紧急度按创建时间最早的在前
+    var order = { high: 0, mid: 1, low: 2 };
+    pending.sort(function(a, b) {
+      var ua = order[a.urgency] !== undefined ? order[a.urgency] : 2;
+      var ub = order[b.urgency] !== undefined ? order[b.urgency] : 2;
+      if (ua !== ub) return ua - ub;
+      return (a.timestamp || 0) - (b.timestamp || 0);
+    });
+    return pending;
+  }
+
+  function getAllInspirations() {
+    return getStore('inspirations') || [];
   }
 
   function markInspirationDone(id) {
@@ -130,6 +146,22 @@ var Storage = (function() {
       return i.completed || i.timestamp > threeDaysAgo;
     });
     setStore('inspirations', list);
+  }
+
+  // ---- 灵感倒计时（设倒计时：到点提醒） ----
+  function saveCountdown(cd) {
+    cd.id = cd.id || uid();
+    cd.createdAt = Date.now();
+    setStore('countdown', cd);
+    return cd;
+  }
+
+  function getCountdown() {
+    return getStore('countdown') || null;
+  }
+
+  function clearCountdown() {
+    localStorage.removeItem('tj_countdown');
   }
 
   function getSettings() {
@@ -409,6 +441,7 @@ var Storage = (function() {
     getRecentRecords: getRecentRecords,
     saveInspiration: saveInspiration,
     getPendingInspirations: getPendingInspirations,
+    getAllInspirations: getAllInspirations,
     markInspirationDone: markInspirationDone,
     archiveOldInspirations: archiveOldInspirations,
     getSettings: getSettings,
@@ -430,6 +463,9 @@ var Storage = (function() {
     getTarotHistory: getTarotHistory,
     saveLateNightReason: saveLateNightReason,
     getLateNightReasons: getLateNightReasons,
+    saveCountdown: saveCountdown,
+    getCountdown: getCountdown,
+    clearCountdown: clearCountdown,
     getLikes: getLikes,
     addLike: addLike,
     clearAll: clearAll,
