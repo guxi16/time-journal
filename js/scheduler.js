@@ -9,6 +9,8 @@ var Scheduler = (function() {
   var dailyTimer = null;
   var isVisible = true;
   var lastInquiryHour = -1;
+  var lastInquiryTitle = '';
+  var retryDelays = [600000, 1800000, 3600000];
 
   // ---- 弹窗优先级队列：同一时间只弹一个，关掉才弹下一个 ----
   // 优先级：睡前确认(1) > 洗澡(2) > 灵感(3) > 定时问询(4)
@@ -155,9 +157,9 @@ var Scheduler = (function() {
 
   function fireInquiry() {
     var hour = new Date().getHours();
-    var title = I18N.getInquiryText(hour);
+    lastInquiryTitle = I18N.getInquiryText(hour);
     enqueuePopup('inquiry', function(done) {
-      Inquiry.show(title, function(result) {
+      Inquiry.show(lastInquiryTitle, function(result) {
         done();
         if (result.type === 'skipped') return;
         var record = {
@@ -179,8 +181,6 @@ var Scheduler = (function() {
     });
     retryTimer = setTimeout(retryInquiry, 600000);
     retryCount = 1;
-
-    var retryDelays = [600000, 1800000, 3600000];
   }
 
   function retryInquiry() {
@@ -192,7 +192,7 @@ var Scheduler = (function() {
       retryCount++;
       return;
     }
-    Inquiry.show(title + '（追问）', function(result) {
+    Inquiry.show(lastInquiryTitle + '（追问）', function(result) {
       if (result.type === 'skipped') return;
       var record = { type: result.type, category: result.category || '', content: result.content || '', title: result.title || '', detail: result.detail || '' };
       storageBusy = true; Storage.saveRecord(record); storageBusy = false;
@@ -205,9 +205,7 @@ var Scheduler = (function() {
     }
   }
 
-  function scheduleShower() {
-    clearTimeout(showerTimer);
-    clearTimeout(showerRetryTimer);
+  function getShowerWindow() {
     var settings = Storage.getSettings();
     var now = new Date();
     var startH = parseInt(settings.showerStart.split(':')[0]);
@@ -219,13 +217,37 @@ var Scheduler = (function() {
     var end = new Date(now);
     end.setHours(endH, endM, 0, 0);
     if (end <= start) end.setDate(end.getDate() + 1);
-    if (now >= start && now <= end) {
-      var delay = (now >= start) ? 0 : start.getTime() - now.getTime();
-      showerTimer = setTimeout(fireShower, Math.max(0, delay));
+    return { start: start.getTime(), end: end.getTime(), now: now.getTime() };
+  }
+
+  // 窗口结束后 15 分钟缓冲：给"× / 15分钟后再提醒"的收尾留余地，但绝不让它跨到第二天早上
+  function inShowerWindow(now, start, end) {
+    var grace = 15 * 60000;
+    return now >= start && now <= end + grace;
+  }
+
+  function scheduleShower() {
+    clearTimeout(showerTimer);
+    clearTimeout(showerRetryTimer);
+    var w = getShowerWindow();
+    if (w.now < w.start) {
+      // 窗口还没到：等到窗口开始再弹（修复"22:30 静默失效"）
+      showerTimer = setTimeout(fireShower, w.start - w.now);
+    } else if (w.now <= w.end) {
+      // 窗口内：立即弹
+      showerTimer = setTimeout(fireShower, 0);
     }
+    // 窗口已过（含缓冲外）：今天不再安排
   }
 
   function fireShower() {
+    var w = getShowerWindow();
+    if (!inShowerWindow(w.now, w.start, w.end)) {
+      // 不在洗澡窗口内：清理状态直接放弃（修复"早上 10 点弹洗澡"）
+      clearTimeout(showerRetryTimer);
+      showerState.postponeCount = 0;
+      return;
+    }
     enqueuePopup('shower', function(done) {
       showShowerMain(done);
     });

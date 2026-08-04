@@ -484,12 +484,9 @@ var Achievement = (function() {
   }
 
   function exportSleepData() {
-    if (Storage.getSleepData(1).length > 0) return;
-    var records = Storage.getRecords(Storage.today());
-    if (records.length === 0) return;
-    var last = records[0];
-    var t = new Date(last.timestamp);
-    Storage.saveSleepData({ date: last.date, bedTime: ('0' + t.getHours()).slice(-2) + ':' + ('0' + t.getMinutes()).slice(-2), wakeTime: '09:00' });
+    // 已废弃：原逻辑把"第一条记录时间"当成入睡时间、起床时间写死 09:00，污染成就/图表/周信数据。
+    // 入睡/起床数据改为由睡前回顾页和早起记录显式提供，这里不再自动写入。
+    return;
   }
 
   return {

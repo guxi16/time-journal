@@ -116,8 +116,12 @@ var Inquiry = (function() {
     if (skipBtn) {
       skipBtn.onclick = function() {
         var remaining = Storage.useSkip();
-        if (remaining >= 0) {
+        // useSkip 额度用完时返回 false；remaining 为 0 表示"第三次跳过"仍应放行
+        if (remaining !== false) {
           finish({ type: 'skipped' });
+        } else {
+          // 今日跳过已用完：重新渲染，跳过按钮消失
+          renderStep();
         }
       };
     }

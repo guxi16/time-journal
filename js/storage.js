@@ -165,9 +165,12 @@ var Storage = (function() {
 
   function resetSkipCount() {
     var s = getSettings();
+    // 只在跨天时重置，今天已重置过就不再动（修复：每次刷新/打开都清零的问题）
+    if (s.skipDate === realToday()) return s;
     s.skipCount = 0;
     s.skipDate = realToday();
     saveSettings(s);
+    return s;
   }
 
   function useSkip() {
