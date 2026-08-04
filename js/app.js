@@ -67,7 +67,6 @@ var App = (function() {
 
     Achievement.updateDisplay();
     Achievement.checkDaily();
-    Achievement.checkPenalty();
 
     injectSectionIcons();
 

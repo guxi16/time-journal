@@ -48,6 +48,7 @@ var Scheduler = (function() {
     scheduleAll();
     dailyTimer = setInterval(dailyCheck, 60000);
     showMorningIfNeeded();
+    checkInquiryOnOpen();
   }
 
   function requestNotification() {
@@ -112,27 +113,33 @@ var Scheduler = (function() {
     clearTimeout(retryTimer);
     retryCount = 0;
     var settings = Storage.getSettings();
-    var now = new Date();
-    var currentHour = now.getHours();
 
     if (settings.statusMode === 'work') {
-      scheduleWorkInquiry(now);
+      scheduleWorkInquiry(new Date());
       return;
     }
 
-    if (settings.inquiryInterval === 0) return;
-    var interval = settings.inquiryInterval;
-    var nextSlot = Math.ceil(now.getTime() / (interval * 3600000)) * (interval * 3600000);
-    var delay = nextSlot - now.getTime();
-    if (delay < 60000) delay += interval * 3600000;
-    delay = Math.min(delay, interval * 3600000);
+    // v1.2 改造：休息模式不再自动定时问询（2h 定时器在页面后台会死，还会和 VPS 推送打架）
+    // 提醒改由 VPS 定时推送负责（10/14/17/20/23 点），打开页面时由 checkInquiryOnOpen 温和补检
+  }
 
-    inquiryTimer = setTimeout(function() {
+  // v1.2 新增：打开页面时温和补检——今天记录太少 且 距上次记录超过 3 小时 → 提示一次（可关闭）
+  function checkInquiryOnOpen() {
+    try {
       if (!isVisible) return;
-      if (storageBusy) { inquiryTimer = setTimeout(arguments.callee, 30000); return; }
-      lastInquiryHour = new Date().getHours();
+      var settings = Storage.getSettings();
+      if (settings.inquiryInterval === 0) return; // 手动模式：不打扰
+      var todayRecords = Storage.getRecords(Storage.today());
+      if (todayRecords.length >= 2) return; // 今天已记 2 条，够了
+      var all = Storage.getAllRecords();
+      if (all && all.length) {
+        var elapsed = Date.now() - (all[0].timestamp || 0);
+        if (elapsed < 3 * 3600000) return; // 3 小时内记过，不打扰
+      }
       fireInquiry();
-    }, delay);
+    } catch(e) {
+      console.warn('checkInquiryOnOpen error:', e);
+    }
   }
 
   function scheduleWorkInquiry(now) {

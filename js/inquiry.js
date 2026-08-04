@@ -41,7 +41,10 @@ var Inquiry = (function() {
       skipHTML = '<button class="btn-skip" id="btn-skip-modal" style="width:100%;margin-top:8px">' +
         I18N.t('btn_skip').replace('X', skipCount) + '</button>';
     }
-    return '<div class="modal-title">' + currentTitle + '</div>' +
+    return '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">' +
+      '<div class="modal-title" style="margin:0">' + currentTitle + '</div>' +
+      '<button class="btn-back" id="btn-close-inquiry">×</button>' +
+      '</div>' +
       '<div class="modal-text">先选一个方式</div>' +
       '<div class="action-grid">' +
       '<button class="action-card" data-method="quick"><span class="action-icon">' + SVG.bolt + '</span><span>快速记</span></button>' +
@@ -98,6 +101,13 @@ var Inquiry = (function() {
   }
 
   function bindEvents() {
+    var closeInquiryBtn = document.getElementById('btn-close-inquiry');
+    if (closeInquiryBtn) {
+      closeInquiryBtn.onclick = function() {
+        close();
+      };
+    }
+
     var backBtn = document.getElementById('btn-back');
     if (backBtn) {
       backBtn.onclick = function() {
