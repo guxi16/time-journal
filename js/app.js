@@ -157,6 +157,8 @@ var App = (function() {
     });
 
     document.getElementById('overlay').addEventListener('click', function() {
+      // 强制记录模式：点空白不能逃，只能记录或跳过
+      if (typeof Inquiry.isForced === 'function' && Inquiry.isForced()) return;
       Inquiry.close();
       document.getElementById('modal').innerHTML = '';
     });

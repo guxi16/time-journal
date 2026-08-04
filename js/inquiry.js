@@ -3,17 +3,23 @@ var Inquiry = (function() {
   var currentStep = 1;
   var selectedCategory = '';
   var currentTitle = '';
+  var forceMode = false; // 强制模式：无 ×，只能记录或跳过
 
-  function show(title, onDone) {
+  function show(title, onDone, opts) {
     callback = onDone;
     currentStep = 1;
     selectedCategory = '';
     currentTitle = title || '顾顾';
+    forceMode = !!(opts && opts.force);
     renderStep();
     var overlay = document.getElementById('overlay');
     var modal = document.getElementById('modal');
     overlay.style.display = 'block';
     modal.style.display = 'flex';
+  }
+
+  function isForced() {
+    return forceMode;
   }
 
   function renderStep() {
@@ -37,15 +43,20 @@ var Inquiry = (function() {
 
   function renderStep1(skipCount) {
     var skipHTML = '';
+    // 有剩余跳过次数就显示跳过按钮；用完则不显示（强制模式只能记录）
     if (skipCount > 0) {
       skipHTML = '<button class="btn-skip" id="btn-skip-modal" style="width:100%;margin-top:8px">' +
         I18N.t('btn_skip').replace('X', skipCount) + '</button>';
     }
+    // 强制模式：没有 × 关闭按钮，只能记录或跳过
+    var closeBtn = forceMode ? '' :
+      '<button class="btn-back" id="btn-close-inquiry">×</button>';
+    var hintText = forceMode ? '记一笔再走，不然不让你退出去' : '先选一个方式';
     return '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">' +
       '<div class="modal-title" style="margin:0">' + currentTitle + '</div>' +
-      '<button class="btn-back" id="btn-close-inquiry">×</button>' +
+      closeBtn +
       '</div>' +
-      '<div class="modal-text">先选一个方式</div>' +
+      '<div class="modal-text">' + hintText + '</div>' +
       '<div class="action-grid">' +
       '<button class="action-card" data-method="quick"><span class="action-icon">' + SVG.bolt + '</span><span>快速记</span></button>' +
       '<button class="action-card" data-method="photo"><span class="action-icon">' + SVG.camera + '</span><span>拍照</span></button>' +
@@ -284,6 +295,7 @@ var presets = ['画画','游戏','看视频','写代码','学习','刷手机','�
     currentStep = 1;
     selectedCategory = '';
     currentTitle = '';
+    forceMode = false;
     // 弹窗关闭后恢复右下角 + 号（编辑/删除弹窗打开时会被隐藏）
     try {
       var fab = document.getElementById('fab-manual');
@@ -291,5 +303,5 @@ var presets = ['画画','游戏','看视频','写代码','学习','刷手机','�
     } catch(e) {}
   }
 
-  return { show: show, close: close };
+  return { show: show, close: close, isForced: isForced };
 })();

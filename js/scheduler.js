@@ -650,8 +650,24 @@ var Scheduler = (function() {
 
   function fireManually() {
     if (!isVisible) return;
+    // 右下角 +：强制记录模式（无 ×，只能记录或消耗跳过次数）
     var hour = new Date().getHours();
-    fireInquiry();
+    lastInquiryTitle = I18N.getInquiryText(hour);
+    Inquiry.show(lastInquiryTitle, function(result) {
+      if (!result || result.type === 'skipped') return;
+      var record = {
+        type: result.type,
+        category: result.category || '',
+        content: result.content || '',
+        title: result.title || '',
+        detail: result.detail || '',
+        rawData: result.rawData || ''
+      };
+      Storage.saveRecord(record);
+      window.notifyDataChanged && window.notifyDataChanged();
+      retryCount = 0;
+      clearTimeout(retryTimer);
+    }, { force: true });
   }
 
   return {
