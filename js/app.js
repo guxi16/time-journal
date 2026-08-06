@@ -65,6 +65,8 @@ var App = (function() {
 
     if (typeof Sleep !== 'undefined' && Sleep.init) Sleep.init();
 
+    checkNightReviewHint();
+
     refreshTimeline();
 
     Achievement.updateDisplay();
@@ -717,6 +719,45 @@ var App = (function() {
 
   function syncRoutineInputs() {
     // 作息输入已迁移到作息页（Sleep 模块），此函数保留为空实现避免调用报错
+  }
+
+  // 深夜温和提示：22:00-02:00 且今天还没记录入睡 → 提示一次睡前回顾（可关闭）
+  function checkNightReviewHint() {
+    try {
+      if (typeof Scheduler === 'undefined' || !Scheduler.hasDoneReviewToday) return;
+      if (Scheduler.hasDoneReviewToday()) return;  // 已记入睡 → 视为已回顾，不打扰
+      // 会话内只弹一次（刷新页面不重复弹）
+      if (sessionStorage.getItem('tj_night_hint_shown') === '1') return;
+      var h = new Date().getHours();
+      var inWindow = (h >= 22 || h < 2);
+      if (!inWindow) return;
+      sessionStorage.setItem('tj_night_hint_shown', '1');
+      setTimeout(function() {
+        var html = '<div class="modal-content modal-content-compact" style="position:relative">' +
+          '<button class="btn-back" id="night-hint-close">×</button>' +
+          '<div class="modal-title" style="font-size:18px">🌙 今晚要不要回顾一下？</div>' +
+          '<div class="modal-text" style="font-size:13px">睡前看一眼今天做了啥，想睡的念头会踏实一点。</div>' +
+          '<div style="display:flex;gap:8px;margin-top:12px">' +
+          '<button class="btn-secondary" id="night-hint-later" style="flex:1">等会儿</button>' +
+          '<button class="btn-primary" id="night-hint-now" style="flex:1;background:var(--accent)">现在回顾</button>' +
+          '</div></div>';
+        document.getElementById('modal').innerHTML = html;
+        document.getElementById('overlay').style.display = 'block';
+        document.getElementById('modal').style.display = 'flex';
+        var close = function() { Inquiry.close(); };
+        document.getElementById('night-hint-close').onclick = close;
+        document.getElementById('night-hint-later').onclick = close;
+        document.getElementById('night-hint-now').onclick = function() {
+          Inquiry.close();
+          try {
+            if (typeof Scheduler !== 'undefined' && Scheduler.fireSleepCheck) Scheduler.fireSleepCheck();
+            else if (typeof Review !== 'undefined' && Review.show) Review.show();
+          } catch(e) {
+            if (typeof Review !== 'undefined' && Review.show) Review.show();
+          }
+        };
+      }, 800);
+    } catch(e) {}
   }
 
   function updateDateDisplay() {

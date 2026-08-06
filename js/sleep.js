@@ -120,7 +120,7 @@ var Sleep = (function() {
       var todayRecords = Storage.getRecords(Storage.today());
       var showers = todayRecords.filter(function(r) {
         var blob = ((r.category || '') + ' ' + (r.smartCategory || '') + ' ' + (r.title || '') + ' ' + (r.content || ''));
-        return blob.indexOf('洗澡') !== -1;
+        return blob.indexOf('洗澡') !== -1 || blob.indexOf('淋浴') !== -1 || blob.indexOf('洗了澡') !== -1 || blob.indexOf('沐浴') !== -1;
       });
       if (showers.length === 0) {
         el.style.display = 'none';
@@ -199,6 +199,29 @@ var Sleep = (function() {
 
     var editBtn = document.getElementById('btn-sleep-edit');
     if (editBtn) editBtn.addEventListener('click', showEditModal);
+
+    // 睡前回顾按钮：点开 → 睡前确认弹窗 / 回顾页
+    var reviewBtn = document.getElementById('btn-sleep-review');
+    if (reviewBtn) reviewBtn.addEventListener('click', function() {
+      try {
+        if (typeof Scheduler !== 'undefined' && Scheduler.fireSleepCheck) {
+          Scheduler.fireSleepCheck();
+        } else if (typeof Review !== 'undefined' && Review.show) {
+          Review.show();
+        }
+      } catch(e) {
+        if (typeof Review !== 'undefined' && Review.show) Review.show();
+      }
+    });
+
+    // 洗了澡按钮：点一下 → 记一条洗澡记录
+    var showerBtn = document.getElementById('btn-shower-now');
+    if (showerBtn) showerBtn.addEventListener('click', function() {
+      Storage.saveRecord({ type: 'preset', category: '洗澡', title: '洗澡', content: '', smartCategory: '洗澡' });
+      renderToday();
+      window.notifyDataChanged && window.notifyDataChanged();
+      notifyTiny('已记录洗澡 🚿');
+    });
   }
 
   // 手动修正弹窗：改当天的入睡/起床/午睡

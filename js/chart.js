@@ -41,7 +41,6 @@ var Chart = (function() {
     ctx.strokeStyle = '#e0e8e0';
     ctx.fillStyle = '#666';
     ctx.font = '10px -apple-system, sans-serif';
-    ctx.textAlign = 'right';
     yLabels.forEach(function(label) {
       var y = timeToY(label);
       if (y >= pad.top && y <= pad.top + plotH) {
@@ -49,11 +48,17 @@ var Chart = (function() {
         ctx.moveTo(pad.left, y);
         ctx.lineTo(w - pad.right, y);
         ctx.stroke();
+        // 左侧标签
+        ctx.textAlign = 'right';
         ctx.fillText(label, pad.left - 4, y + 3);
+        // 右侧标签
+        ctx.textAlign = 'left';
+        ctx.fillText(label, w - pad.right + 4, y + 3);
       }
     });
 
-    var step = Math.ceil(data.length / 7);
+    // X 轴日期：更密（最多 7 个标签，按数据量自适应）
+    var step = Math.max(1, Math.ceil(data.length / 7));
     ctx.textAlign = 'center';
     data.forEach(function(d, i) {
       if (i % step === 0) {
@@ -62,6 +67,11 @@ var Chart = (function() {
         ctx.fillText(d.date.slice(5), x, h - 4);
       }
     });
+    // 末尾也画一个（数据不是整步时保证最后一天有标签）
+    if (data.length > 1 && (data.length - 1) % step !== 0) {
+      ctx.fillStyle = '#666';
+      ctx.fillText(data[data.length - 1].date.slice(5), pad.left + plotW, h - 4);
+    }
 
     function drawLine(values, color, dashed) {
       ctx.strokeStyle = color;

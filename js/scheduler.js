@@ -708,6 +708,17 @@ var Scheduler = (function() {
     return ('0' + now.getHours()).slice(-2) + ':' + ('0' + now.getMinutes()).slice(-2);
   }
 
+  // 今天是否已做过睡前回顾：今天的 sleepData 已有入睡时间即视为已回顾
+  function hasDoneReviewToday() {
+    try {
+      var list = Storage.getSleepData(2);
+      for (var i = list.length - 1; i >= 0; i--) {
+        if (list[i].date === Storage.today() && list[i].bedTime) return true;
+      }
+      return false;
+    } catch(e) { return false; }
+  }
+
   function showMorningIfNeeded() {
     var sleepData = Storage.getSleepData(1);
     var last = sleepData[sleepData.length - 1];
@@ -766,6 +777,8 @@ var Scheduler = (function() {
   return {
     init: init,
     fireManually: fireManually,
-    scheduleAll: scheduleAll
+    scheduleAll: scheduleAll,
+    fireSleepCheck: fireSleepCheck,
+    hasDoneReviewToday: hasDoneReviewToday
   };
 })();
