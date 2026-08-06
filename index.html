@@ -95,8 +95,6 @@
           <button class="sleep-btn" id="btn-shower-now"><span class="sleep-btn-icon" style="color:#7a9ec4"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 12h16l-1 4a2 2 0 0 1-2 1.5H7A2 2 0 0 1 5 16z"/><path d="M6 6.5V9M9 5.5V8M12 5v2M15 5.5V8M18 6.5V9"/></svg></span><span>洗了澡</span></button>
         </div>
 
-        <button class="btn-secondary" id="btn-sleep-review" style="width:100%;margin-bottom:10px;padding:11px">🌙 睡前回顾（今晚总结）</button>
-
         <div class="sleep-duration" id="sleep-duration" style="display:none"></div>
 
         <div class="sleep-shower" id="sleep-shower" style="display:none"></div>
@@ -105,7 +103,7 @@
         <div style="font-size:11px;color:var(--text-tertiary);line-height:1.6;margin-top:6px">自动记的时间可能不准，清醒后可以来这里修正。只改当天，不影响历史。</div>
 
         <div class="section-title" style="margin-top:24px">近 7 天作息</div>
-        <canvas id="sleep-chart" width="340" height="460"></canvas>
+        <canvas id="sleep-chart" width="340" height="380"></canvas>
         <div style="font-size:11px;color:var(--text-tertiary);line-height:1.6;margin-top:4px">上图看入睡（20点-8点），下图看起床（6点-16点），虚线是目标时间。</div>
 
         <div class="section-title">睡眠历史</div>
@@ -205,6 +203,7 @@
               <input type="time" id="set-wake-target" value="09:00">
             </div>
           </div>
+          <div style="font-size:11px;color:var(--text-tertiary);line-height:1.6;margin-top:6px">入睡时间是页面内的睡前提醒时间：到点后页面会温柔地催你睡觉（只在你开着 App 时）。趋势图里的目标虚线也用它。</div>
         </div>
 
         <div class="setting-group">

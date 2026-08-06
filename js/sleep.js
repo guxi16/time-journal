@@ -200,20 +200,6 @@ var Sleep = (function() {
     var editBtn = document.getElementById('btn-sleep-edit');
     if (editBtn) editBtn.addEventListener('click', showEditModal);
 
-    // 睡前回顾按钮：点开 → 睡前确认弹窗 / 回顾页
-    var reviewBtn = document.getElementById('btn-sleep-review');
-    if (reviewBtn) reviewBtn.addEventListener('click', function() {
-      try {
-        if (typeof Scheduler !== 'undefined' && Scheduler.fireSleepCheck) {
-          Scheduler.fireSleepCheck();
-        } else if (typeof Review !== 'undefined' && Review.show) {
-          Review.show();
-        }
-      } catch(e) {
-        if (typeof Review !== 'undefined' && Review.show) Review.show();
-      }
-    });
-
     // 洗了澡按钮：点一下 → 记一条洗澡记录
     var showerBtn = document.getElementById('btn-shower-now');
     if (showerBtn) showerBtn.addEventListener('click', function() {

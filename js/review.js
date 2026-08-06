@@ -64,8 +64,7 @@ var Review = (function() {
       actions.style.display = 'none';
       content.innerHTML = '<div class="review-empty">' + I18N.t('review_empty') + '</div>';
     }
-
-    App.switchPage('review');
+    // 渲染由 App.switchPage('review') 触发（renderReviewPage），这里不切页避免递归
   }
 
   function getIcon(rec) {

@@ -107,7 +107,7 @@ var App = (function() {
       renderCategoryAnalysis();
     }
     if (page === 'review') {
-      updateReviewPreview();
+      renderReviewPage();
       renderInspoList();
     }
     if (page === 'sleep') {
@@ -717,6 +717,19 @@ var App = (function() {
     }
   }
 
+  // 回顾页真正渲染：调用 Review.show()（今天时间线 + 熬夜原因 + 睡前入口）
+  function renderReviewPage() {
+    try {
+      if (typeof Review !== 'undefined' && Review.show) {
+        Review.show();
+      } else {
+        updateReviewPreview();
+      }
+    } catch(e) {
+      updateReviewPreview();
+    }
+  }
+
   function syncRoutineInputs() {
     // 作息输入已迁移到作息页（Sleep 模块），此函数保留为空实现避免调用报错
   }
@@ -749,12 +762,7 @@ var App = (function() {
         document.getElementById('night-hint-later').onclick = close;
         document.getElementById('night-hint-now').onclick = function() {
           Inquiry.close();
-          try {
-            if (typeof Scheduler !== 'undefined' && Scheduler.fireSleepCheck) Scheduler.fireSleepCheck();
-            else if (typeof Review !== 'undefined' && Review.show) Review.show();
-          } catch(e) {
-            if (typeof Review !== 'undefined' && Review.show) Review.show();
-          }
+          App.switchPage('review');
         };
       }, 800);
     } catch(e) {}
