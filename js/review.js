@@ -61,7 +61,7 @@ var Review = (function() {
       });
     } else {
       empty.style.display = 'block';
-      actions.style.display = 'none';
+      // actions 保留显示（"还不想睡"+灵感管理始终可见，不看有没有记录）
       content.innerHTML = '<div class="review-empty">' + I18N.t('review_empty') + '</div>';
     }
     // 渲染由 App.switchPage('review') 触发（renderReviewPage），这里不切页避免递归
