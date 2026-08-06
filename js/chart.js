@@ -7,7 +7,7 @@ var Chart = (function() {
     var ctx = canvas.getContext('2d');
     var dpr = window.devicePixelRatio || 1;
     var w = canvas.parentElement.clientWidth - 32;
-    var h = 460; // 两个子图叠加，各 ~210 + 间距
+    var h = 380; // 两个子图叠加，各 ~160 + 间距，更紧凑
     canvas.width = w * dpr;
     canvas.height = h * dpr;
     canvas.style.width = w + 'px';
@@ -24,7 +24,7 @@ var Chart = (function() {
     }
 
     var pad = { top: 22, right: 16, bottom: 26, left: 44 };
-    var subH = 200; // 每个子图绘图区高度
+    var subH = 160; // 每个子图绘图区高度（更紧凑）
     var plotW = w - pad.left - pad.right;
     var gap = 26;   // 两图间距
 
@@ -53,21 +53,23 @@ var Chart = (function() {
         return base + plotH * (1 - (val - minY) / (maxY - minY + 24));
       };
 
-      // Y 轴网格 + 左右标签
+      // Y 轴网格 + 左侧标签（精简只画 4 个,数据少时更透气）
       ctx.strokeStyle = '#e0e8e0';
       ctx.fillStyle = '#666';
       ctx.font = '10px -apple-system, sans-serif';
-      spec.yLabels.forEach(function(label) {
-        var y = timeToY(label);
-        if (y >= base && y <= base + plotH) {
-          ctx.beginPath();
-          ctx.moveTo(pad.left, y);
-          ctx.lineTo(w - pad.right, y);
-          ctx.stroke();
-          ctx.textAlign = 'right';
-          ctx.fillText(label, pad.left - 4, y + 3);
-          ctx.textAlign = 'left';
-          ctx.fillText(label, w - pad.right + 4, y + 3);
+      spec.yLabels.forEach(function(label, idx) {
+        // 只画 4 个标签:首/中/末 各留一个,均匀分布
+        var total = spec.yLabels.length;
+        if (total <= 4 || idx === 0 || idx === total - 1 || idx === Math.floor((total - 1) / 2) || idx === Math.floor((total - 1) * 3 / 4)) {
+          var y = timeToY(label);
+          if (y >= base && y <= base + plotH) {
+            ctx.beginPath();
+            ctx.moveTo(pad.left, y);
+            ctx.lineTo(w - pad.right, y);
+            ctx.stroke();
+            ctx.textAlign = 'right';
+            ctx.fillText(label, pad.left - 4, y + 3);
+          }
         }
       });
 
@@ -125,7 +127,7 @@ var Chart = (function() {
     drawSub(ctx, 0, {
       title: '🌙 入睡',
       minY: 20, maxY: 8,  // 20:00 ~ 次日 08:00
-      yLabels: ['20:00', '22:00', '00:00', '02:00', '04:00', '06:00', '08:00'],
+      yLabels: ['20:00', '00:00', '04:00', '08:00'],
       lines: [
         { values: bedTimes, color: '#4a90d9', dashed: false, label: '实际入睡' },
         { values: bedTargets, color: '#e05555', dashed: true, label: '目标 ' + settings.sleepTarget }
@@ -136,7 +138,7 @@ var Chart = (function() {
     drawSub(ctx, subH + pad.top + pad.bottom + gap, {
       title: '☀️ 起床',
       minY: 6, maxY: 16,  // 06:00 ~ 16:00
-      yLabels: ['06:00', '08:00', '10:00', '12:00', '14:00', '16:00'],
+      yLabels: ['06:00', '10:00', '14:00', '16:00'],
       lines: [
         { values: wakeTimes, color: '#4caf84', dashed: false, label: '实际起床' },
         { values: wakeTargets, color: '#e05555', dashed: true, label: '目标 ' + settings.wakeTarget }
