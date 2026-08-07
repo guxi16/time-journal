@@ -114,6 +114,46 @@ body {
   opacity: 0.7;
 }
 
+.date-nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding: 4px 0;
+}
+.date-nav-btn {
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.date-nav-btn:active { opacity: 0.6; }
+.date-nav-btn:disabled { opacity: 0.3; cursor: default; }
+.date-nav-center {
+  flex: 1;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+.date-nav-today {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--accent);
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 7px 10px;
+  cursor: pointer;
+}
+.date-nav-today:active { opacity: 0.6; }
+
 .inspo-banner {
   background: var(--mauve-soft);
   border: 1px solid rgba(168,153,196,0.2);

@@ -62,10 +62,9 @@ var App = (function() {
     bindButtons();
     bindInspoButtons();
     bindRecordActions();
+    bindDateNav();
 
     if (typeof Sleep !== 'undefined' && Sleep.init) Sleep.init();
-
-    checkNightReviewHint();
 
     refreshTimeline();
 
@@ -315,21 +314,19 @@ var App = (function() {
   }
 
   function refreshTimeline() {
-    var records = Storage.getRecentRecords(2);  // 只显示最近 2 天
     var list = document.getElementById('timeline-list');
     var empty = document.getElementById('timeline-empty');
     if (!list) return;
 
-    // 用 timestamp 本地日期分组（兼容旧数据，避免 UTC 偏移错误）
-    var recordsByDate = {};
-    records.forEach(function(r) {
-      var localDate = localDateStr(r.timestamp);
-      if (!recordsByDate[localDate]) recordsByDate[localDate] = [];
-      recordsByDate[localDate].push(r);
+    // 日期回看：默认今天；viewDate 格式 YYYY-MM-DD
+    var viewDate = getViewDate();
+    var records = Storage.getAllRecords() || [];
+    var dayRecords = records.filter(function(r) {
+      return localDateStr(r.timestamp) === viewDate;
     });
 
-    var dates = Object.keys(recordsByDate).sort().reverse();
-    if (dates.length === 0) {
+    var html = '';
+    if (dayRecords.length === 0) {
       list.innerHTML = '';
       if (empty) {
         list.appendChild(empty);
@@ -337,38 +334,65 @@ var App = (function() {
       }
     } else {
       if (empty) empty.style.display = 'none';
-      var html = '';
-      dates.forEach(function(date) {
-        html += '<div class="timeline-day"><div class="timeline-date">' + formatDate(date) + '</div>';
-        recordsByDate[date].forEach(function(r) {
-          try {
-            var time = new Date(r.timestamp);
-            var timeStr = ('0' + time.getHours()).slice(-2) + ':' + ('0' + time.getMinutes()).slice(-2);
-            var content = r.title || r.content || r.category || '';
-            html += '<div class="record-item"><span class="record-time">' + timeStr + '</span>' +
-              '<span class="record-icon">' + getIcon(r) + '</span>' +
-              '<span class="record-content"><span class="record-title">' + escapeHtml(content) + '</span></span>';
-            var catLabel = r.smartCategory || r.category;
-            if (catLabel) {
-              html += '<span class="record-cat">' + escapeHtml(catLabel) + '</span>';
-            }
-            html += '<span class="record-actions">' +
-              '<button class="rec-act-btn" data-act="edit" data-id="' + r.id + '" title="调整内容">✎</button>' +
-              '<button class="rec-act-btn rec-del" data-act="del" data-id="' + r.id + '" title="删除">✕</button>' +
-              '</span></div>';
-          } catch(e) {
-            console.warn('record render error:', e);
+      html += '<div class="timeline-day"><div class="timeline-date">' + formatDate(viewDate) + '</div>';
+      dayRecords.forEach(function(r) {
+        try {
+          var time = new Date(r.timestamp);
+          var timeStr = ('0' + time.getHours()).slice(-2) + ':' + ('0' + time.getMinutes()).slice(-2);
+          var content = r.title || r.content || r.category || '';
+          html += '<div class="record-item"><span class="record-time">' + timeStr + '</span>' +
+            '<span class="record-icon">' + getIcon(r) + '</span>' +
+            '<span class="record-content"><span class="record-title">' + escapeHtml(content) + '</span></span>';
+          var catLabel = r.smartCategory || r.category;
+          if (catLabel) {
+            html += '<span class="record-cat">' + escapeHtml(catLabel) + '</span>';
           }
-        });
-        html += '</div>';
+          html += '<span class="record-actions">' +
+            '<button class="rec-act-btn" data-act="edit" data-id="' + r.id + '" title="调整内容">✎</button>' +
+            '<button class="rec-act-btn rec-del" data-act="del" data-id="' + r.id + '" title="删除">✕</button>' +
+            '</span></div>';
+        } catch(e) {
+          console.warn('record render error:', e);
+        }
       });
+      html += '</div>';
       list.innerHTML = html;
     }
 
-    try { renderDaySummary(); } catch(e) {}
+    updateDateNav();
     try { renderDaySummary(); } catch(e) {}
     try { checkInspoBanner(); } catch(e) {}
     try { updateDateDisplay(); } catch(e) {}
+  }
+
+  // ---- 日期回看 ----
+  var timelineViewDate = '';
+  function getViewDate() {
+    if (!timelineViewDate) timelineViewDate = Storage.today();
+    return timelineViewDate;
+  }
+  function setViewDate(d) {
+    timelineViewDate = d;
+    refreshTimeline();
+  }
+  function shiftViewDate(delta) {
+    var d = new Date(getViewDate() + 'T12:00:00');
+    d.setDate(d.getDate() + delta);
+    setViewDate(localDateStr(d.getTime()));
+  }
+  function updateDateNav() {
+    var center = document.getElementById('date-nav-center');
+    var nextBtn = document.getElementById('date-next');
+    if (center) center.textContent = formatDate(getViewDate());
+    if (nextBtn) nextBtn.disabled = (getViewDate() === Storage.today());
+  }
+  function bindDateNav() {
+    var prev = document.getElementById('date-prev');
+    var next = document.getElementById('date-next');
+    var today = document.getElementById('date-today');
+    if (prev) prev.onclick = function() { shiftViewDate(-1); };
+    if (next) next.onclick = function() { shiftViewDate(1); };
+    if (today) today.onclick = function() { setViewDate(Storage.today()); };
   }
 
   // 记录操作：编辑/删除（事件委托，动态记录也能响应）
@@ -732,40 +756,6 @@ var App = (function() {
 
   function syncRoutineInputs() {
     // 作息输入已迁移到作息页（Sleep 模块），此函数保留为空实现避免调用报错
-  }
-
-  // 深夜温和提示：22:00-02:00 且今天还没记录入睡 → 提示一次睡前回顾（可关闭）
-  function checkNightReviewHint() {
-    try {
-      if (typeof Scheduler === 'undefined' || !Scheduler.hasDoneReviewToday) return;
-      if (Scheduler.hasDoneReviewToday()) return;  // 已记入睡 → 视为已回顾，不打扰
-      // 会话内只弹一次（刷新页面不重复弹）
-      if (sessionStorage.getItem('tj_night_hint_shown') === '1') return;
-      var h = new Date().getHours();
-      var inWindow = (h >= 22 || h < 2);
-      if (!inWindow) return;
-      sessionStorage.setItem('tj_night_hint_shown', '1');
-      setTimeout(function() {
-        var html = '<div class="modal-content modal-content-compact" style="position:relative">' +
-          '<button class="btn-back" id="night-hint-close">×</button>' +
-          '<div class="modal-title" style="font-size:18px">🌙 今晚要不要回顾一下？</div>' +
-          '<div class="modal-text" style="font-size:13px">睡前看一眼今天做了啥，想睡的念头会踏实一点。</div>' +
-          '<div style="display:flex;gap:8px;margin-top:12px">' +
-          '<button class="btn-secondary" id="night-hint-later" style="flex:1">等会儿</button>' +
-          '<button class="btn-primary" id="night-hint-now" style="flex:1;background:var(--accent)">现在回顾</button>' +
-          '</div></div>';
-        document.getElementById('modal').innerHTML = html;
-        document.getElementById('overlay').style.display = 'block';
-        document.getElementById('modal').style.display = 'flex';
-        var close = function() { Inquiry.close(); };
-        document.getElementById('night-hint-close').onclick = close;
-        document.getElementById('night-hint-later').onclick = close;
-        document.getElementById('night-hint-now').onclick = function() {
-          Inquiry.close();
-          App.switchPage('review');
-        };
-      }, 800);
-    } catch(e) {}
   }
 
   function updateDateDisplay() {

@@ -14,10 +14,10 @@ var Scheduler = (function() {
   var retryDelays = [600000, 1800000, 3600000];
 
   // ---- 弹窗优先级队列：同一时间只弹一个，关掉才弹下一个 ----
-  // 优先级：睡前确认(1) > 洗澡(2) > 灵感(3) > 定时问询(4)
+  // 优先级：睡前确认(1) > 洗澡补检(2) > 回顾补检(3) > 洗澡(4) > 灵感(5) > 定时问询(6)
   var popupQueue = [];
   var popupShowing = false;
-  var popupTypes = { review: 1, shower: 2, inspo: 3, inquiry: 4 };
+  var popupTypes = { review: 1, showerCatch: 2, reviewCatch: 3, shower: 4, inspo: 5, inquiry: 6 };
 
   function enqueuePopup(type, showFn) {
     // 同类型去重（不重复排队）
@@ -50,6 +50,8 @@ var Scheduler = (function() {
     dailyTimer = setInterval(dailyCheck, 60000);
     showMorningIfNeeded();
     checkInquiryOnOpen();
+    checkShowerCatch();
+    checkReviewCatch();
     // 恢复未完成的灵感倒计时检查
     try {
       var cd = Storage.getCountdown();
@@ -146,6 +148,106 @@ var Scheduler = (function() {
       fireInquiry();
     } catch(e) {
       console.warn('checkInquiryOnOpen error:', e);
+    }
+  }
+
+  // v2.4 新增：洗澡补检——过了洗澡窗口还没洗 → 打开页面温和补一次（可关闭，一天 1 次）
+  function checkShowerCatch() {
+    try {
+      if (!isVisible) return;
+      var settings = Storage.getSettings();
+      if (!settings.showerEnd) return;
+      var now = new Date();
+      var nowMin = now.getHours() * 60 + now.getMinutes();
+      var endMin = parseInt(settings.showerEnd.split(':')[0]) * 60 + parseInt(settings.showerEnd.split(':')[1]);
+      if (nowMin < endMin) return; // 窗口还没结束，不补检
+
+      // 今天已洗过 → 不补
+      var todayRecords = Storage.getRecords(Storage.today());
+      var hasShower = todayRecords.some(function(r) {
+        var blob = ((r.category || '') + ' ' + (r.smartCategory || '') + ' ' + (r.title || '') + ' ' + (r.content || ''));
+        return blob.indexOf('洗澡') !== -1 || blob.indexOf('淋浴') !== -1 || blob.indexOf('沐浴') !== -1;
+      });
+      if (hasShower) return;
+
+      // 一天只补一次（localStorage 标记）
+      var key = 'tj_showerCatch_date';
+      if (localStorage.getItem(key) === Storage.today()) return;
+      localStorage.setItem(key, Storage.today());
+
+      enqueuePopup('showerCatch', function(done) {
+        var html = '<div class="modal-content modal-content-compact" style="position:relative">' +
+          '<button class="btn-back" id="shower-catch-close">×</button>' +
+          '<div class="modal-title" style="font-size:18px">今天还没洗澡哦 🚿</div>' +
+          '<div class="modal-text" style="font-size:13px">现在去洗一个，出来会舒服很多。</div>' +
+          '<div style="display:flex;gap:8px;margin-top:12px">' +
+          '<button class="btn-secondary" id="shower-catch-later" style="flex:1">等会儿</button>' +
+          '<button class="btn-primary" id="shower-catch-go" style="flex:1;background:var(--accent)">现在去洗</button>' +
+          '</div></div>';
+        document.getElementById('modal').innerHTML = html;
+        document.getElementById('overlay').style.display = 'block';
+        document.getElementById('modal').style.display = 'flex';
+        var close = function() { Inquiry.close(); done(); };
+        document.getElementById('shower-catch-close').onclick = close;
+        document.getElementById('shower-catch-later').onclick = close;
+        document.getElementById('shower-catch-go').onclick = function() {
+          Inquiry.close(); done();
+          Storage.saveRecord({ type: 'preset', category: '洗澡', content: '洗完澡了' });
+          window.notifyDataChanged && window.notifyDataChanged();
+          notifyTiny('已记录洗澡 🚿');
+        };
+      });
+    } catch(e) {
+      console.warn('checkShowerCatch error:', e);
+    }
+  }
+
+  // v2.4 新增：睡前回顾补检——过了入睡目标还没记入睡 → 打开页面温和提示回顾（可关闭，一天 1 次）
+  function checkReviewCatch() {
+    try {
+      if (!isVisible) return;
+      var settings = Storage.getSettings();
+      if (!settings.sleepTarget) return;
+      var now = new Date();
+      var nowMin = now.getHours() * 60 + now.getMinutes();
+      var targetMin = parseInt(settings.sleepTarget.split(':')[0]) * 60 + parseInt(settings.sleepTarget.split(':')[1]);
+      if (nowMin < targetMin) return; // 还没到入睡目标，不补检
+
+      // 已记入睡 → 视为已回顾，不打扰
+      var sleepData = Storage.getSleepData(2);
+      var doneToday = false;
+      for (var i = sleepData.length - 1; i >= 0; i--) {
+        if (sleepData[i].date === Storage.today() && sleepData[i].bedTime) { doneToday = true; break; }
+      }
+      if (doneToday) return;
+
+      // 一天只补一次（sessionStorage 会话内 + localStorage 跨天防重复）
+      var key = 'tj_reviewCatch_date';
+      if (localStorage.getItem(key) === Storage.today()) return;
+      localStorage.setItem(key, Storage.today());
+
+      enqueuePopup('reviewCatch', function(done) {
+        var html = '<div class="modal-content modal-content-compact" style="position:relative">' +
+          '<button class="btn-back" id="review-catch-close">×</button>' +
+          '<div class="modal-title" style="font-size:18px">🌙 今晚要不要回顾一下？</div>' +
+          '<div class="modal-text" style="font-size:13px">睡前看一眼今天做了啥，想睡的念头会踏实一点。</div>' +
+          '<div style="display:flex;gap:8px;margin-top:12px">' +
+          '<button class="btn-secondary" id="review-catch-later" style="flex:1">等会儿</button>' +
+          '<button class="btn-primary" id="review-catch-now" style="flex:1;background:var(--accent)">现在回顾</button>' +
+          '</div></div>';
+        document.getElementById('modal').innerHTML = html;
+        document.getElementById('overlay').style.display = 'block';
+        document.getElementById('modal').style.display = 'flex';
+        var close = function() { Inquiry.close(); done(); };
+        document.getElementById('review-catch-close').onclick = close;
+        document.getElementById('review-catch-later').onclick = close;
+        document.getElementById('review-catch-now').onclick = function() {
+          Inquiry.close(); done();
+          App.switchPage('review');
+        };
+      });
+    } catch(e) {
+      console.warn('checkReviewCatch error:', e);
     }
   }
 
