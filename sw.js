@@ -1,4 +1,4 @@
-const CACHE = 'timejournal-v32';
+const CACHE = 'timejournal-v33';
 // 基于部署路径动态拼接（兼容 GitHub Pages 子路径 /time-journal/）
 const BASE = self.registration.scope;
 const FILES = [

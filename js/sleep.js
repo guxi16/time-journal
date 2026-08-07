@@ -112,31 +112,76 @@ var Sleep = (function() {
     el.style.background = bg;
   }
 
-  // 今天洗澡（放宽筛选：category 或 title/content 含"洗澡"）
+  // 今天洗澡（放宽筛选：category 或 title/content 含"洗澡"）+ 近 7 天打卡图
   function renderShower() {
     var el = document.getElementById('sleep-shower');
     if (!el) return;
     try {
-      var todayRecords = Storage.getRecords(Storage.today());
-      var showers = todayRecords.filter(function(r) {
+      var all = Storage.getAllRecords() || [];
+      var isShowerRec = function(r) {
         var blob = ((r.category || '') + ' ' + (r.smartCategory || '') + ' ' + (r.title || '') + ' ' + (r.content || ''));
         return blob.indexOf('洗澡') !== -1 || blob.indexOf('淋浴') !== -1 || blob.indexOf('洗了澡') !== -1 || blob.indexOf('沐浴') !== -1;
-      });
-      if (showers.length === 0) {
-        el.style.display = 'none';
-        return;
+      };
+
+      // 今天
+      var todayRecords = Storage.getRecords(Storage.today());
+      var todayShowers = todayRecords.filter(isShowerRec);
+      var todayHtml = '';
+      if (todayShowers.length > 0) {
+        var last = todayShowers[0];
+        var d = new Date(last.timestamp);
+        var hm = ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
+        todayHtml = '<div style="font-size:13px;color:var(--accent);margin-bottom:8px;font-weight:500">🚿 今天已洗澡（' + hm + '）</div>';
       }
-      var last = showers[0];
-      var d = new Date(last.timestamp);
-      var hm = ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
+
+      // 近 7 天打卡（含今天，共 7 格）
+      var cells = [];
+      var now = new Date();
+      for (var i = 6; i >= 0; i--) {
+        var dd = new Date(now);
+        dd.setDate(dd.getDate() - i);
+        var y = dd.getFullYear();
+        var mm = ('0' + (dd.getMonth() + 1)).slice(-2);
+        var dstr = y + '-' + mm + '-' + ('0' + dd.getDate()).slice(-2);
+        var dayRecs = all.filter(function(r) {
+          var t = new Date(r.timestamp);
+          var ty = t.getFullYear();
+          var tmm = ('0' + (t.getMonth() + 1)).slice(-2);
+          var td = ('0' + t.getDate()).slice(-2);
+          return (ty + '-' + tmm + '-' + td) === dstr && isShowerRec(r);
+        });
+        cells.push({ date: dstr, count: dayRecs.length, showers: dayRecs });
+      }
+
+      // 打卡格子 HTML
+      var gridHtml = '<div style="display:flex;gap:6px;align-items:flex-end;flex-wrap:wrap">';
+      cells.forEach(function(c, idx) {
+        var has = c.count > 0;
+        var label = c.date.slice(5).replace('-', '/');
+        var isToday = idx === cells.length - 1;
+        var color = has ? 'var(--accent)' : 'var(--bg-tertiary)';
+        var timeInfo = '';
+        if (has && c.showers.length > 0) {
+          var t = new Date(c.showers[0].timestamp);
+          timeInfo = ('0' + t.getHours()).slice(-2) + ':' + ('0' + t.getMinutes()).slice(-2);
+        }
+        gridHtml += '<div style="text-align:center">' +
+          '<div style="width:34px;height:34px;border-radius:10px;background:' + color + ';display:flex;align-items:center;justify-content:center;font-size:14px;' + (has ? 'color:#fff' : 'color:var(--text-tertiary)') + (isToday ? ';outline:2px solid var(--accent);outline-offset:1px' : '') + '">' +
+          (has ? '🚿' : '·') + '</div>' +
+          '<div style="font-size:10px;color:var(--text-tertiary);margin-top:3px">' + label + '</div>' +
+          (has ? '<div style="font-size:10px;color:var(--accent);font-weight:500">' + timeInfo + '</div>' : '') +
+          '</div>';
+      });
+      gridHtml += '</div>';
+
       el.style.display = 'block';
-      el.innerHTML = '<span style="font-size:12px;color:var(--accent)">🚿 今天已洗澡（' + hm + '）</span>';
+      el.innerHTML = todayHtml + gridHtml;
     } catch(e) {
       el.style.display = 'none';
     }
   }
 
-  // 睡眠历史列表（最近 14 天）
+  // 睡眠历史列表（最近 14 天，默认显示 5 条 + 折叠展开）
   function renderHistory() {
     var el = document.getElementById('sleep-history');
     if (!el) return;
@@ -145,7 +190,8 @@ var Sleep = (function() {
       el.innerHTML = '<div class="empty-state" style="padding:30px 20px"><div class="empty-text">还没有睡眠记录</div><div class="empty-hint">每晚点「我睡了」，早上点「我醒了」</div></div>';
       return;
     }
-    var html = '';
+    var SHOW_N = 5;  // 默认显示最近 5 条（顾顾定：5 天够了）
+    var allItems = [];
     list.forEach(function(d) {
       if (!d.bedTime && !d.wakeTime) return;
       var dateLabel = d.date.slice(5);
@@ -168,14 +214,33 @@ var Sleep = (function() {
           dur = Math.floor(dm2 / 60) + 'h' + ('0' + (dm2 % 60)).slice(-2);
         }
       }
-      html += '<div class="sleep-hist-item">' +
+      allItems.push('<div class="sleep-hist-item">' +
         '<span class="sleep-hist-date">' + dateLabel + '</span>' +
         '<span class="sleep-hist-bed">' + bed + '</span>' +
         '<span class="sleep-hist-wake">' + wake + '</span>' +
         (dur ? '<span class="sleep-hist-dur">' + dur + '</span>' : '<span class="sleep-hist-dur" style="color:var(--text-tertiary)">--</span>') +
-        '</div>';
+        '</div>');
     });
+
+    var html = '';
+    var visible = allItems.slice(0, SHOW_N).join('');
+    var hidden = allItems.slice(SHOW_N).join('');
+    html += '<div id="sleep-hist-visible">' + visible + '</div>';
+    if (hidden) {
+      html += '<div id="sleep-hist-more" style="display:none">' + hidden + '</div>' +
+        '<button class="btn-secondary" id="sleep-hist-toggle" style="width:100%;margin-top:6px;padding:10px;font-size:13px">▼ 查看完整历史（' + allItems.length + ' 天）</button>';
+    }
     el.innerHTML = html;
+
+    var toggle = document.getElementById('sleep-hist-toggle');
+    if (toggle) {
+      toggle.onclick = function() {
+        var more = document.getElementById('sleep-hist-more');
+        var expanded = more.style.display === 'block';
+        more.style.display = expanded ? 'none' : 'block';
+        toggle.textContent = expanded ? '▼ 查看完整历史（' + allItems.length + ' 天）' : '▲ 收起';
+      };
+    }
   }
 
   function bindEvents() {

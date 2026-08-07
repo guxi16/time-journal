@@ -419,6 +419,26 @@ var Storage = (function() {
     return reasons.slice(-days);
   }
 
+  function deleteLateNightReason(date) {
+    var reasons = getStore('lateNightReasons') || [];
+    reasons = reasons.filter(function(r) { return r.date !== date; });
+    setStore('lateNightReasons', reasons);
+    // 同步删时间线里的熬夜原因记录（同一日期 category=熬夜原因 的）
+    var records = getStore('records') || [];
+    records = records.filter(function(r) {
+      var cat = r.smartCategory || r.category || '';
+      var isLate = cat.indexOf('熬夜原因') !== -1;
+      if (!isLate) return true;
+      var d = new Date(r.timestamp);
+      var y = d.getFullYear();
+      var m = ('0' + (d.getMonth() + 1)).slice(-2);
+      var dd = ('0' + d.getDate()).slice(-2);
+      return (y + '-' + m + '-' + dd) !== date;
+    });
+    setStore('records', records);
+    return true;
+  }
+
   // ---- 点赞功能 ----
   function getLikes() {
     var d = getStore('likes') || { count: 0, lastDate: '', history: [] };
@@ -487,6 +507,7 @@ var Storage = (function() {
     getTarotHistory: getTarotHistory,
     saveLateNightReason: saveLateNightReason,
     getLateNightReasons: getLateNightReasons,
+    deleteLateNightReason: deleteLateNightReason,
     saveCountdown: saveCountdown,
     getCountdown: getCountdown,
     clearCountdown: clearCountdown,

@@ -587,9 +587,39 @@ var App = (function() {
         '<span class="late-time">' + timeStr + '</span>' +
         '<span class="late-reason">' + (r.content || r.reason) + '</span>' +
         '<span class="late-cat">' + reasonText + '</span>' +
+        '<button class="late-del" data-late-date="' + r.date + '" title="删除这条记录">✕</button>' +
         '</div>';
     });
     el.innerHTML = html;
+
+    // 删除熬夜记录（自定义确认弹窗，避免 PWA confirm 被拦截）
+    el.querySelectorAll('.late-del').forEach(function(btn) {
+      btn.onclick = function(e) {
+        e.stopPropagation();
+        var date = btn.getAttribute('data-late-date');
+        var label = (btn.closest('.late-item') ? btn.closest('.late-item').querySelector('.late-reason').textContent : '') || '这条记录';
+        var html = '<div class="modal-content modal-content-compact" style="position:relative">' +
+          '<div class="modal-title" style="font-size:18px;margin-bottom:12px">删除这条熬夜记录？</div>' +
+          '<div class="del-confirm-label">「' + escapeHtml(label) + '」</div>' +
+          '<div style="font-size:13px;color:var(--text-tertiary);margin-bottom:14px">删了之后没法恢复。</div>' +
+          '<div style="display:flex;gap:8px">' +
+          '<button class="btn-secondary" id="late-del-cancel" style="flex:1">再想想</button>' +
+          '<button class="btn-danger" id="late-del-confirm" style="flex:1">删除</button>' +
+          '</div></div>';
+        document.getElementById('modal').innerHTML = html;
+        document.getElementById('overlay').style.display = 'block';
+        document.getElementById('modal').style.display = 'flex';
+        document.getElementById('late-del-cancel').onclick = function() { Inquiry.close(); };
+        document.getElementById('late-del-confirm').onclick = function() {
+          Storage.deleteLateNightReason(date);
+          Inquiry.close();
+          renderLateList();
+          try { renderPatternAnalysis(); } catch(e) {}
+          notifyDataChanged();
+          showSavedToast('已删除');
+        };
+      };
+    });
   }
 
   function renderCategoryAnalysis() {

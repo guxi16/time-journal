@@ -1,4 +1,10 @@
 var Review = (function() {
+  function escapeHtmlSafe(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function(m) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m];
+    });
+  }
+
   function show() {
     var records = Storage.getRecords(Storage.today());
     var content = document.getElementById('review-content');
@@ -30,7 +36,18 @@ var Review = (function() {
       html += '</div>';
 
       html += '<div class="section-title">今晚为什么还没睡？</div>';
-      html += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">';
+
+      // 今天已记录的原因（可删除）
+      var todayReasons = (Storage.getLateNightReasons ? Storage.getLateNightReasons(1) : []).filter(function(r) { return r.date === Storage.today(); });
+      if (todayReasons.length > 0) {
+        var todayR = todayReasons[todayReasons.length - 1];
+        html += '<div class="late-recorded" id="late-recorded">' +
+          '<span>今天已记录：</span><strong>' + escapeHtmlSafe(todayR.reason || todayR.content) + '</strong>' +
+          '<button class="late-del" id="late-recorded-del" title="删除今天的原因">✕</button>' +
+          '</div>';
+      }
+
+      html += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px" id="reason-btns">';
       var reasons = ['\uD83D\uDCA1\u7075\u611F\u521B\u4F5C', '\uD83C\uDFAE\u6E38\u620F\u89C6\u9891', '\uD83D\uDE30\u7126\u8651\u7A7A\u865A', '\uD83E\uDD71\u4E0D\u56F0', '\u270D\uFE0F\u5176\u4ED6'];
       reasons.forEach(function(r) {
         html += '<button class="chart-btn reason-btn" data-reason="' + r + '">' + r + '</button>';
@@ -45,17 +62,30 @@ var Review = (function() {
       content.innerHTML = html;
       actions.style.display = 'block';
 
+      // 删除今天已记录的原因
+      var recordedDel = document.getElementById('late-recorded-del');
+      if (recordedDel) {
+        recordedDel.onclick = function() {
+          Storage.deleteLateNightReason(Storage.today());
+          var block = document.getElementById('late-recorded');
+          if (block) block.remove();
+          window.notifyDataChanged && window.notifyDataChanged();
+          if (typeof notifyTiny === 'function') notifyTiny('已删除今天的原因');
+        };
+      }
+
       document.querySelectorAll('.reason-btn').forEach(function(btn) {
         btn.onclick = function() {
           var reason = btn.dataset.reason;
           Storage.saveLateNightReason(reason);
+          // 保存后刷新回顾页，显示"今天已记录"
+          Review.show();
           document.getElementById('reason-extra').style.display = 'block';
           document.getElementById('reason-save').onclick = function() {
             var extra = document.getElementById('reason-text').value;
             if (extra) Storage.saveRecord({ type: 'preset', category: '熬夜原因', content: reason + ': ' + extra });
             document.getElementById('reason-extra').style.display = 'none';
-            btn.style.background = 'var(--accent-blue)';
-            btn.style.color = '#fff';
+            Review.show();
           };
         };
       });
