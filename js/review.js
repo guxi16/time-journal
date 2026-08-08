@@ -5,8 +5,57 @@ var Review = (function() {
     });
   }
 
+  function getReviewDateStr(d) {
+    var y = d.getFullYear();
+    var m = ('0' + (d.getMonth() + 1)).slice(-2);
+    var day = ('0' + d.getDate()).slice(-2);
+    return y + '-' + m + '-' + day;
+  }
+
+  // 回顾要展示的记录：凌晨时段（还没到新一天的边界）→ 昨天 + 今天凌晨，否则只看今天
+  function getReviewRecords() {
+    var now = new Date();
+    var h = now.getHours();
+    var settings = Storage.getSettings() || {};
+    var dayStartH = parseInt(settings.dayStart) || 0;
+    if (h < 4 || h < dayStartH) {
+      var yesterday = new Date(now);
+      yesterday.setDate(yesterday.getDate() - 1);
+      return Storage.getRecords(Storage.today()).concat(Storage.getRecords(getReviewDateStr(yesterday)));
+    }
+    return Storage.getRecords(Storage.today());
+  }
+
+  function isEarlyHour() {
+    var h = new Date().getHours();
+    var dayStartH = parseInt((Storage.getSettings() || {}).dayStart) || 0;
+    return (h < 4 || h < dayStartH);
+  }
+
+  function catEmoji(cat) {
+    var m = { '画画':'🎨','创作':'🎨','游戏':'🎮','看视频':'📺','写代码':'💻','学习':'📚','刷手机':'📱','购物':'🛒','家务':'🧹','吃饭':'🍜','社交':'💬','洗澡':'🚿','灵感':'💡','情绪':'💭','音乐':'🎵','动漫':'🌸','休息':'🛋️','运动':'🏃','娱乐':'🎬','工作':'💼','其他':'📌' };
+    return m[cat] || '📌';
+  }
+
+  // 今日小结卡片：一眼看到今天做了啥（记录数 + 分类统计）
+  function buildSummary(records) {
+    var count = records.length;
+    if (count === 0) return '';
+    var catCount = {};
+    records.forEach(function(r) {
+      var cat = r.smartCategory || r.category || '其他';
+      catCount[cat] = (catCount[cat] || 0) + 1;
+    });
+    var top = Object.keys(catCount).sort(function(a, b) { return catCount[b] - catCount[a]; }).slice(0, 3);
+    var parts = top.map(function(c) { return catEmoji(c) + ' ' + c + ' ×' + catCount[c]; });
+    return '<div class="review-summary" style="background:var(--accent-soft);border:1px solid var(--border-glow);border-radius:12px;padding:12px 14px;margin-bottom:12px">' +
+      '<div style="font-size:13px;font-weight:500;color:var(--accent);margin-bottom:4px">✨ 今日小结</div>' +
+      '<div style="font-size:13px">今天记了 <strong>' + count + '</strong> 件事：' + parts.join('、') + '</div>' +
+      '</div>';
+  }
+
   function show() {
-    var records = Storage.getRecords(Storage.today());
+    var records = getReviewRecords();
     var content = document.getElementById('review-content');
     var actions = document.getElementById('review-actions');
     var empty = document.getElementById('review-empty');
@@ -14,9 +63,10 @@ var Review = (function() {
 
     if (records.length > 0) {
       empty.style.display = 'none';
+      html += buildSummary(records);
       html += '<div class="review-timeline">';
       html += '<div class="modal-text">' + I18N.t('review_has') + '</div>';
-      html += '<div class="section-title">今天的时间线</div>';
+      html += '<div class="section-title">' + (isEarlyHour() ? '你的一天' : '今天的时间线') + '</div>';
       records.forEach(function(r) {
         var time = new Date(r.timestamp);
         var timeStr = ('0' + time.getHours()).slice(-2) + ':' + ('0' + time.getMinutes()).slice(-2);

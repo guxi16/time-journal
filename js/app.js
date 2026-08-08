@@ -763,6 +763,9 @@ var App = (function() {
   }
 
   function updateReviewPreview() {
+    // 正在回顾页时不要覆盖 Review.show() 渲染的内容（修复：回顾内容"一闪就消失"）
+    var reviewPage = document.getElementById('page-review');
+    if (reviewPage && reviewPage.classList.contains('active')) return;
     var records = Storage.getRecords(Storage.today());
     var content = document.getElementById('review-content');
     var empty = document.getElementById('review-empty');

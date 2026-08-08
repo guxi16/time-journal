@@ -1218,6 +1218,14 @@ body {
   font-size: 14px;
 }
 
+.setting-hint {
+  font-size: 10px;
+  color: var(--text-tertiary);
+  margin-top: 4px;
+  line-height: 1.5;
+  opacity: 0.85;
+}
+
 .setting-actions {
   display: flex;
   gap: 10px;
