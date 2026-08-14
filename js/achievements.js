@@ -71,6 +71,13 @@ var Achievement = (function() {
     var sleepData = Storage.getSleepData(90);
     var today = Storage.today();
 
+  // 时间字符串转分钟（HH:MM → 0-1439），用于精确比较（修复"只看小时不看分钟"的 bug）
+  function toMin(timeStr) {
+    if (!timeStr) return -1;
+    var p = timeStr.split(':');
+    return parseInt(p[0]) * 60 + parseInt(p[1] || 0);
+  }
+
     checkProgressiveChains(ach, settings, records, allRecords, sleepData, today);
     checkNegative(ach, settings, records, allRecords, sleepData, today);
 
@@ -123,13 +130,13 @@ var Achievement = (function() {
 
   function calcSleepLevel(settings, sleepData) {
     if (sleepData.length === 0) return 0;
-    var targetH = parseInt(settings.sleepTarget.split(':')[0]);
+    var targetM = toMin(settings.sleepTarget);
     var strictConsec = countConsecutive(sleepData, function(d) {
-      var h = parseInt(d.bedTime.split(':')[0]);
-      return h <= 23 && h >= 18;
+      var m = toMin(d.bedTime);
+      return m <= 23 * 60 + 59 && m >= 18 * 60;
     });
     var normalConsec = countConsecutive(sleepData, function(d) {
-      return parseInt(d.bedTime.split(':')[0]) <= targetH;
+      return toMin(d.bedTime) <= targetM;
     });
 
     if (strictConsec >= 30) return 4;
@@ -141,11 +148,10 @@ var Achievement = (function() {
 
   function calcWakeLevel(settings, sleepData) {
     if (sleepData.length === 0) return 0;
-    var targetWH = parseInt(settings.wakeTarget.split(':')[0]);
+    var targetM = toMin(settings.wakeTarget);
     var cons = countConsecutive(sleepData, function(d) {
       if (!d.wakeTime) return false;
-      var wh = parseInt(d.wakeTime.split(':')[0]);
-      return wh <= targetWH;
+      return toMin(d.wakeTime) <= targetM;
     });
     if (cons >= 14) return 3;
     if (cons >= 7) return 2;
@@ -301,8 +307,8 @@ var Achievement = (function() {
       else { addHistoryEvent('overtime', 'regained', Storage.realToday()); }
     }
 
-    var targetH = parseInt(settings.sleepTarget.split(':')[0]);
-    var lateDays = sleepData.filter(function(d) { return parseInt(d.bedTime.split(':')[0]) > targetH; }).length;
+    var targetM2 = toMin(settings.sleepTarget);
+    var lateDays = sleepData.filter(function(d) { return toMin(d.bedTime) > targetM2; }).length;
     if (lateDays >= 30) {
       if (!ach.sleep_debt) { ach.sleep_debt = true; ach.sleep_debtUnlockDate = Storage.realToday(); addHistoryEvent('sleep_debt', 'gained', ach.sleep_debtUnlockDate); unlockEffect('😴 睡眠欠债小能手'); }
       else { addHistoryEvent('sleep_debt', 'regained', Storage.realToday()); }
@@ -480,7 +486,7 @@ var Achievement = (function() {
   function checkPenalty() {
     var sleepData = Storage.getSleepData(3);
     var settings = Storage.getSettings();
-    var lateCount = sleepData.filter(function(d) { return parseInt(d.bedTime.split(':')[0]) > parseInt(settings.sleepTarget.split(':')[0]); }).length;
+    var lateCount = sleepData.filter(function(d) { return toMin(d.bedTime) > toMin(settings.sleepTarget); }).length;
     if (lateCount >= 3) {
       Inquiry.show(I18N.t('penalty_input'), function(r) { Storage.saveRecord({ type: 'say', content: r.content || '承认熬夜' }); });
     }

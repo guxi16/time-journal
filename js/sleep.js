@@ -198,20 +198,17 @@ var Sleep = (function() {
       var bed = d.bedTime || '--:--';
       var wake = d.wakeTime || '--:--';
       var dur = '';
-      if (typeof d.bedAt === 'number' && typeof d.wakeAt === 'number') {
-        var dm = (d.wakeAt - d.bedAt) / 60000;
-        if (dm > 0 && dm <= 20 * 60) {
-          dur = Math.floor(dm / 60) + 'h' + ('0' + Math.round(dm) % 60).slice(-2);
-        }
-      } else if (d.bedTime && d.wakeTime) {
+      // 优先用 bedTime/wakeTime 字符串算时长（保证和今天卡片 renderDuration 一致，显示和时长永远自洽）
+      // 顾顾诉求：她改过的时间就是真相，按字符串算；按钮时刻没改的话字符串和暗号本来就一致，效果一样
+      if (d.bedTime && d.wakeTime) {
         var b = d.bedTime.split(':'), w = d.wakeTime.split(':');
         var bm = parseInt(b[0]) * 60 + parseInt(b[1]);
         var wm = parseInt(w[0]) * 60 + parseInt(w[1]);
         if (bm >= 12 * 60) bm -= 24 * 60;
-        var dm2 = wm - bm;
-        if (dm2 < 0) dm2 += 24 * 60;
-        if (dm2 > 0 && dm2 <= 20 * 60) {
-          dur = Math.floor(dm2 / 60) + 'h' + ('0' + (dm2 % 60)).slice(-2);
+        var dm = wm - bm;
+        if (dm < 0) dm += 24 * 60;
+        if (dm > 0 && dm <= 20 * 60) {
+          dur = Math.floor(dm / 60) + 'h' + ('0' + (dm % 60)).slice(-2);
         }
       }
       allItems.push('<div class="sleep-hist-item">' +
