@@ -63,6 +63,14 @@ var Achievement = (function() {
     { key: 'sleep_debt', icon: SVG.battery, name: '睡眠债大户', desc: '累计晚睡 ≥30 天', meme: { locked: '欠身体的睡眠总要还的', unlocked: '睡眠小银行账户欠了30天 😴 慢慢还呀' } }
   ];
 
+  // 时间字符串转分钟（HH:MM → 0-1439），用于精确比较（修复"只看小时不看分钟"的 bug）
+  // 必须放在 IIFE 顶层，让 calcSleepLevel / calcWakeLevel / 睡眠债判定等都能访问
+  function toMin(timeStr) {
+    if (!timeStr) return -1;
+    var p = timeStr.split(':');
+    return parseInt(p[0]) * 60 + parseInt(p[1] || 0);
+  }
+
   function checkDaily() {
     var ach = Storage.getAchievements();
     var settings = Storage.getSettings();
@@ -70,13 +78,6 @@ var Achievement = (function() {
     var allRecords = Storage.getAllRecords();
     var sleepData = Storage.getSleepData(90);
     var today = Storage.today();
-
-  // 时间字符串转分钟（HH:MM → 0-1439），用于精确比较（修复"只看小时不看分钟"的 bug）
-  function toMin(timeStr) {
-    if (!timeStr) return -1;
-    var p = timeStr.split(':');
-    return parseInt(p[0]) * 60 + parseInt(p[1] || 0);
-  }
 
     checkProgressiveChains(ach, settings, records, allRecords, sleepData, today);
     checkNegative(ach, settings, records, allRecords, sleepData, today);
